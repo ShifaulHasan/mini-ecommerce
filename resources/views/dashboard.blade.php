@@ -1,95 +1,74 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="h4 fw-semibold text-dark">
-            {{ __('Dashboard') }}
-        </h2>
+        <h2 class="h4 fw-semibold text-dark">Dashboard</h2>
     </x-slot>
 
-    <div class="py-4">
-        <div class="container">
-            <div class="row g-4 mb-4">
-                <!-- Total Products Card -->
-                <div class="col-md-4">
-                    <div class="card bg-primary text-white">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h6 class="card-title mb-0">Total Products</h6>
-                                    <h2 class="mb-0">{{ $totalProducts }}</h2>
-                                </div>
-                                <i class="bi bi-box-seam fs-1"></i>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+    <div class="card">
+        <div class="card-body">
 
-                <!-- Total Orders Card -->
-                <div class="col-md-4">
-                    <div class="card bg-success text-white">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h6 class="card-title mb-0">Total Orders</h6>
-                                    <h2 class="mb-0">{{ $totalOrders }}</h2>
-                                </div>
-                                <i class="bi bi-cart-check fs-1"></i>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            <!-- Live Search -->
+            <input type="text" id="search" class="form-control mb-3" placeholder="Search products...">
 
-                <!-- Total Categories Card -->
-                <div class="col-md-4">
-                    <div class="card bg-info text-white">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h6 class="card-title mb-0">Total Categories</h6>
-                                    <h2 class="mb-0">{{ $totalCategories }}</h2>
-                                </div>
-                                <i class="bi bi-tags fs-1"></i>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            <!-- Products Table -->
+            <div class="table-responsive">
+                <table class="table table-hover" id="productsTable">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Category</th>
+                            <th>Price</th>
+                            <th>Stock</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach(App\Models\Product::with('category')->get() as $product)
+                            <tr>
+                                <td>{{ $product->id }}</td>
+                                <td>{{ $product->name }}</td>
+                                <td>{{ $product->category->name }}</td>
+                                <td>${{ number_format($product->price,2) }}</td>
+                                <td>{{ $product->stock }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
             </div>
 
-            <!-- Recent Orders -->
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0">Recent Orders</h5>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Order ID</th>
-                                    <th>Customer</th>
-                                    <th>Total Amount</th>
-                                    <th>Status</th>
-                                    <th>Date</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach($recentOrders as $order)
-                                <tr>
-                                    <td>#{{ $order->id }}</td>
-                                    <td>{{ $order->user->name }}</td>
-                                    <td>${{ number_format($order->total_amount, 2) }}</td>
-                                    <td>
-                                        <span class="badge bg-{{ $order->status == 'completed' ? 'success' : 'warning' }}">
-                                            {{ ucfirst($order->status) }}
-                                        </span>
-                                    </td>
-                                    <td>{{ $order->created_at->format('M d, Y') }}</td>
-                                </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
         </div>
     </div>
+
+    <!-- AJAX Script -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.getElementById('search');
+            const tableBody = document.querySelector('#productsTable tbody');
+
+            searchInput.addEventListener('keyup', function() {
+                const query = this.value;
+
+                fetch(`{{ route('dashboard.products.ajaxSearch') }}?query=${query}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        tableBody.innerHTML = '';
+
+                        if(data.length > 0){
+                            data.forEach(product => {
+                                const row = `<tr>
+                                    <td>${product.id}</td>
+                                    <td>${product.name}</td>
+                                    <td>${product.category ? product.category.name : 'N/A'}</td>
+                                    <td>$${parseFloat(product.price).toFixed(2)}</td>
+                                    <td>${product.stock}</td>
+                                </tr>`;
+                                tableBody.innerHTML += row;
+                            });
+                        } else {
+                            tableBody.innerHTML = `<tr><td colspan="5" class="text-center">No products found</td></tr>`;
+                        }
+                    });
+            });
+        });
+    </script>
+
 </x-app-layout>

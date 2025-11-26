@@ -30,5 +30,12 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
+Route::get('/categories/create', [CategoryController::class, 'create'])->name('categories.create');
+Route::post('/categories/store', [CategoryController::class, 'store'])->name('categories.store');
+
+Route::get('/dashboard/products/ajax-search', [DashboardController::class, 'ajaxSearchProducts'])
+     ->name('dashboard.products.ajaxSearch');
+
+
 
 require __DIR__.'/auth.php';

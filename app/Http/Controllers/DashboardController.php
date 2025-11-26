@@ -18,4 +18,20 @@ class DashboardController extends Controller
 
         return view('dashboard', compact('totalProducts', 'totalOrders', 'totalCategories', 'recentOrders'));
     }
+   public function ajaxSearchProducts(Request $request)
+{
+    $query = $request->input('query');
+
+    $products = Product::with('category')
+        ->where('name', 'like', "%{$query}%")
+        ->orWhereHas('category', function($q) use ($query) {
+            $q->where('name', 'like', "%{$query}%");
+        })
+        ->get();
+
+    // Return JSON for AJAX
+    return response()->json($products);
+}
+
+
 }

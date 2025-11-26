@@ -1,12 +1,12 @@
 <x-app-layout>
     <x-slot name="header">
         <div class="d-flex align-items-center gap-2">
-            <!-- Add Category Button - Left Side -->
-            <a href="{{ route('categories.create') }}" class="btn btn-primary">
-                <i class="bi bi-plus-circle"></i> Add Category
+            <!-- Add Product Button - Left Side -->
+            <a href="{{ route('products.create') }}" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Add Product
             </a>
             <!-- Page Title -->
-            <h2 class="h4 fw-semibold text-dark mb-0">Categories</h2>
+            <h2 class="h4 fw-semibold text-dark mb-0">Products</h2>
         </div>
     </x-slot>
 
@@ -21,30 +21,40 @@
                 </div>
             @endif
 
-            <!-- Categories Table -->
+            <!-- Products Table -->
             <div class="table-responsive">
                 <table class="table table-hover">
                     <thead>
                         <tr>
                             <th>ID</th>
                             <th>Name</th>
-                            <th>Description</th>
-                            <th>Products</th>
+                            <th>Category</th>
+                            <th>Price</th>
+                            <th>Stock</th>
+                            <th>Image</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach($categories as $category)
+                        @foreach($products as $product)
                             <tr>
-                                <td>{{ $category->id }}</td>
-                                <td>{{ $category->name }}</td>
-                                <td>{{ Str::limit($category->description, 50) }}</td>
-                                <td>{{ $category->products_count }}</td>
+                                <td>{{ $product->id }}</td>
+                                <td>{{ $product->name }}</td>
+                                <td>{{ $product->category->name }}</td>
+                                <td>${{ number_format($product->price,2) }}</td>
+                                <td>{{ $product->stock }}</td>
                                 <td>
-                                    <a href="{{ route('categories.edit', $category) }}" class="btn btn-sm btn-warning">
+                                    @if($product->image)
+                                        <img src="{{ asset('images/products/'.$product->image) }}" width="50" alt="product">
+                                    @else
+                                        N/A
+                                    @endif
+                                </td>
+                                <td>
+                                    <a href="{{ route('products.edit', $product) }}" class="btn btn-sm btn-warning">
                                         <i class="bi bi-pencil"></i>
                                     </a>
-                                    <form action="{{ route('categories.destroy', $category) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure?')">
+                                    <form action="{{ route('products.destroy', $product) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure?')">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="btn btn-sm btn-danger">
@@ -54,9 +64,9 @@
                                 </td>
                             </tr>
                         @endforeach
-                        @if($categories->count() == 0)
+                        @if($products->count() == 0)
                             <tr>
-                                <td colspan="5" class="text-center">No categories found.</td>
+                                <td colspan="7" class="text-center">No products found.</td>
                             </tr>
                         @endif
                     </tbody>
