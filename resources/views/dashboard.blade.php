@@ -3,71 +3,164 @@
         <h2 class="h4 fw-semibold text-dark">Dashboard</h2>
     </x-slot>
 
-    <div class="card">
-        <div class="card-body">
+    <div class="container-fluid">
 
-            <!-- Live Search -->
-            <input type="text" id="search" class="form-control mb-3" placeholder="Search products...">
+        <!-- ======== SUMMARY CARDS ======== -->
+        <div class="row">
 
-            <!-- Products Table -->
-            <div class="table-responsive">
-                <table class="table table-hover" id="productsTable">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Name</th>
-                            <th>Category</th>
-                            <th>Price</th>
-                            <th>Stock</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach(App\Models\Product::with('category')->get() as $product)
-                            <tr>
-                                <td>{{ $product->id }}</td>
-                                <td>{{ $product->name }}</td>
-                                <td>{{ $product->category->name }}</td>
-                                <td>${{ number_format($product->price,2) }}</td>
-                                <td>{{ $product->stock }}</td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
+            <div class="col-md-3">
+                <div class="card shadow-sm border-0 mb-3">
+                    <div class="card-body text-center">
+                        <h6 class="fw-bold text-muted">Total Sale</h6>
+                        <h3 class="fw-bold text-primary">{{ number_format($totalSale ?? 0,2) }}</h3>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="card shadow-sm border-0 mb-3">
+                    <div class="card-body text-center">
+                        <h6 class="fw-bold text-muted">Total Payment</h6>
+                        <h3 class="fw-bold text-success">{{ number_format($totalPayment ?? 0,2) }}</h3>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="card shadow-sm border-0 mb-3">
+                    <div class="card-body text-center">
+                        <h6 class="fw-bold text-muted">Total Due</h6>
+                        <h3 class="fw-bold text-danger">{{ number_format($totalDue ?? 0,2) }}</h3>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="card shadow-sm border-0 mb-3">
+                    <div class="card-body text-center">
+                        <h6 class="fw-bold text-muted">This Month Sale</h6>
+                        <h3 class="fw-bold text-info">{{ number_format($monthlySale ?? 0,2) }}</h3>
+                    </div>
+                </div>
             </div>
 
         </div>
-    </div>
 
-    <!-- AJAX Script -->
+        <!-- ======== CASH FLOW + PIE CHART ======== -->
+        <div class="row mt-4">
+
+            <div class="col-md-8">
+                <div class="card shadow-sm border-0">
+                    <div class="card-header fw-bold">Cash Flow</div>
+                    <div class="card-body">
+                        <canvas id="cashFlowChart" height="130"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card shadow-sm border-0">
+                    <div class="card-header fw-bold">Report ({{ now()->format('F Y') }})</div>
+                    <div class="card-body">
+                        <canvas id="donutChart" height="200"></canvas>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ======== BEST SELL PRODUCT ======== -->
+        <div class="row mt-4">
+            <div class="col-md-6">
+                <div class="card shadow-sm border-0">
+                    <div class="card-header fw-bold">Best Sale Product (This Month)</div>
+                    <div class="card-body">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Qty</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($bestProducts ?? [] as $item)
+                                    <tr>
+                                        <td>{{ $item->name }}</td>
+                                        <td>{{ $item->qty }}</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="card shadow-sm border-0">
+                    <div class="card-header fw-bold">Recent Transactions</div>
+                    <div class="card-body">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Ref</th>
+                                    <th>Customer</th>
+                                    <th>Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($recent ?? [] as $row)
+                                    <tr>
+                                        <td>{{ $row->date }}</td>
+                                        <td>{{ $row->ref }}</td>
+                                        <td>{{ $row->customer }}</td>
+                                        <td>{{ $row->total }}</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div> <!-- container end -->
+
+    <!-- CHART JS -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const searchInput = document.getElementById('search');
-            const tableBody = document.querySelector('#productsTable tbody');
+        // ======= CASH FLOW CHART =======
+        const ctx = document.getElementById('cashFlowChart');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: @json($months ?? []),
+                datasets: [
+                    {
+                        label: 'Payment Received',
+                        data: @json($paymentReceived ?? []),
+                        borderWidth: 2
+                    },
+                    {
+                        label: 'Payment Sent',
+                        data: @json($paymentSent ?? []),
+                        borderWidth: 2
+                    }
+                ]
+            }
+        });
 
-            searchInput.addEventListener('keyup', function() {
-                const query = this.value;
-
-                fetch(`{{ route('dashboard.products.ajaxSearch') }}?query=${query}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        tableBody.innerHTML = '';
-
-                        if(data.length > 0){
-                            data.forEach(product => {
-                                const row = `<tr>
-                                    <td>${product.id}</td>
-                                    <td>${product.name}</td>
-                                    <td>${product.category ? product.category.name : 'N/A'}</td>
-                                    <td>$${parseFloat(product.price).toFixed(2)}</td>
-                                    <td>${product.stock}</td>
-                                </tr>`;
-                                tableBody.innerHTML += row;
-                            });
-                        } else {
-                            tableBody.innerHTML = `<tr><td colspan="5" class="text-center">No products found</td></tr>`;
-                        }
-                    });
-            });
+        // ======= DONUT CHART =======
+        const donut = document.getElementById('donutChart');
+        new Chart(donut, {
+            type: 'doughnut',
+            data: {
+                labels: ['Purchase', 'Revenue', 'Expense'],
+                datasets: [{
+                    data: @json($donutData ?? [0,0,0])
+                }]
+            }
         });
     </script>
 

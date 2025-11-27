@@ -40,7 +40,7 @@
 
                 <div class="mb-3">
                     <label class="form-label">Price</label>
-                    <input type="number" name="price" class="form-control" step="0.01" required>
+                    <input type="number" name="price" class="form-control" step="any" required>
                     @error('price')
                         <small class="text-danger">{{ $message }}</small>
                     @enderror
