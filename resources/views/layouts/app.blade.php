@@ -73,20 +73,16 @@
 </h4>
 
 
-        <a href="{{ route('dashboard') }}" class="{{ request()->is('dashboard') ? 'active' : '' }}">
+        <a class="nav-link text-white" href="{{ route('dashboard') }}" class="{{ request()->is('dashboard*') ? 'active' : '' }}">
             <i class="bi bi-speedometer2"></i> Dashboard
         </a>
 
-        <a href="{{ route('categories.index') }}" class="{{ request()->is('categories*') ? 'active' : '' }}">
+        <a class="nav-link text-white" href="{{ route('categories.index') }}" class="{{ request()->is('categories*') ? 'active' : '' }}">
             <i class="bi bi-tags"></i> Categories
         </a>
 
-        <a href="{{ route('products.index') }}" class="{{ request()->is('products*') ? 'active' : '' }}">
+        <a class="nav-link text-white" href="{{ route('products.index') }}" class="{{ request()->is('products*') ? 'active' : '' }}">
             <i class="bi bi-box-seam"></i> Products
-        </a>
-
-        <a href="{{ route('orders.index') }}" class="{{ request()->is('orders*') ? 'active' : '' }}">
-            <i class="bi bi-cart-check"></i> Orders
         </a>
 
         <!-- ----------------------
