@@ -2,63 +2,87 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Sale;
+use App\Models\Customer;
+use App\Models\Product;
+use App\Models\Warehouse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class SaleController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+    public function index(Request $request)
     {
-        //
+        $query = Sale::with(['customer']);
+        
+        // Filters
+        if ($request->filled('start_date')) {
+            $query->whereDate('sale_date', '>=', $request->start_date);
+        }
+        
+        if ($request->filled('end_date')) {
+            $query->whereDate('sale_date', '<=', $request->end_date);
+        }
+        
+        if ($request->filled('warehouse_id')) {
+            $query->where('warehouse_id', $request->warehouse_id);
+        }
+        
+        if ($request->filled('sale_status')) {
+            $query->where('sale_status', $request->sale_status);
+        }
+        
+        if ($request->filled('payment_status')) {
+            $query->where('payment_status', $request->payment_status);
+        }
+        
+        if ($request->filled('payment_method')) {
+            $query->where('payment_method', $request->payment_method);
+        }
+        
+        // Search
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('reference_number', 'LIKE', "%{$search}%")
+                  ->orWhereHas('customer', function($q) use ($search) {
+                      $q->where('name', 'LIKE', "%{$search}%");
+                  });
+            });
+        }
+        
+        $perPage = $request->get('per_page', 10);
+        $sales = $query->latest()->paginate($perPage)->appends($request->except('page'));
+        
+        $warehouses = Warehouse::all();
+        $customers = Customer::all();
+        
+        return view('sales.index', compact('sales', 'warehouses', 'customers'));
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
     public function create()
     {
-        //
+        $customers = Customer::all();
+        $warehouses = Warehouse::all();
+        $products = Product::where('stock', '>', 0)->get();
+        
+        return view('sales.create', compact('customers', 'warehouses', 'products'));
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request)
     {
-        //
+        // Implementation here
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
+    public function show(Sale $sale)
     {
-        //
+        $sale->load('customer', 'saleItems.product');
+        return view('sales.show', compact('sale'));
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
+    public function destroy(Sale $sale)
     {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
+        $sale->delete();
+        return redirect()->route('sales.index')->with('success', 'Sale deleted successfully!');
     }
 }
