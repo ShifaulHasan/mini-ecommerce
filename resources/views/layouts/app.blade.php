@@ -103,7 +103,7 @@
             <i class="bi bi-chevron-down float-end"></i>
         </a>
         <div class="collapse" id="saleMenu">
-            <a class="nav-link text-white-50 ms-4" href="{{ route('sales.index') }}">Sale List</a>
+            <a class="nav-link text-white" href="{{ route('sales.index') }}">Sale List</a>
             <a class="nav-link text-white-50 ms-4" href="{{ route('sales.create') }}">Add Sale</a>
             <a class="nav-link text-white-50 ms-4" href="{{ route('pos.index') }}">POS</a>
         </div>

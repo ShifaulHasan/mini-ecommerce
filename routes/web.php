@@ -96,5 +96,12 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
+Route::middleware(['auth', 'verified'])->group(function () {
+    // ... existing routes ...
+    
+    // POS Routes
+    Route::get('/pos', [POSController::class, 'index'])->name('pos.index');
+    Route::post('/pos/complete-sale', [POSController::class, 'completeSale'])->name('pos.completeSale');
+});
 
 require __DIR__.'/auth.php';

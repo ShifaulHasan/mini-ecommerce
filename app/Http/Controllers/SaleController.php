@@ -85,4 +85,8 @@ class SaleController extends Controller
         $sale->delete();
         return redirect()->route('sales.index')->with('success', 'Sale deleted successfully!');
     }
+   
+
+
+    
 }
