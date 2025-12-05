@@ -56,9 +56,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/pos/add-to-cart', [POSController::class, 'addToCart'])->name('pos.addToCart');
     Route::post('/pos/complete-sale', [POSController::class, 'completeSale'])->name('pos.completeSale');
     
-    // Return Management
-    Route::resource('sale-returns', SaleReturnController::class);
+  Route::middleware(['auth', 'verified'])->group(function () {
+    // ... existing routes ...
     
+    // Sale Returns - AJAX route MUST come BEFORE resource route
+    Route::get('/sale-returns/get-items/{sale}', [SaleReturnController::class, 'getSaleItems'])->name('sale-returns.get-items');
+    Route::resource('sale-returns', SaleReturnController::class);
+});
     // Accounting
     Route::resource('accounts', AccountController::class);
     Route::resource('money-transfers', MoneyTransferController::class);
