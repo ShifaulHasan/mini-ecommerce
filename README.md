@@ -1,6 +1,6 @@
 <p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
 
-# Mini Laravel Inventory management software and smart billing system with E-commerce Project 🛒
+#  Inventory management software and smart billing system with E-commerce Project 🛒
 
 A beginner-friendly **Laravel E-commerce project** demonstrating the core concepts of Laravel including MVC architecture, routing, controllers, models, views, Eloquent ORM, and authentication with Laravel Breeze.
 
