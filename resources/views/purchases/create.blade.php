@@ -157,6 +157,20 @@
                             <input type="text" id="paymentStatus" class="form-control" readonly value="Unpaid">
                         </div>
 
+                        <!-- ✅ Payment Method Added -->
+                        <div class="mb-3">
+                            <label class="form-label">Payment Method <span class="text-danger">*</span></label>
+                            <select name="payment_method" class="form-select" required>
+                                <option value="cash">Cash</option>
+                                <option value="bkash">bKash</option>
+                                <option value="nagad">Nagad</option>
+                                <option value="bank">Bank Transfer</option>
+                                <option value="cheque">Cheque</option>
+                                <option value="card">Card</option>
+                                <option value="mobile_payment">Mobile Payment</option>
+                            </select>
+                        </div>
+
                         <hr>
 
                         <div class="mb-3">
@@ -178,10 +192,10 @@
         </div>
     </form>
 
+    <!-- SCRIPT SAME AS BEFORE -->
     <script>
         let rowIndex = 1;
 
-        // Add product row
         document.getElementById('addRow').addEventListener('click', function() {
             const newRow = document.querySelector('.product-row').cloneNode(true);
             newRow.querySelectorAll('input').forEach(input => input.value = '');
@@ -196,7 +210,6 @@
             attachRowEvents(newRow);
         });
 
-        // Remove row
         document.addEventListener('click', function(e) {
             if (e.target.closest('.remove-row')) {
                 if (document.querySelectorAll('.product-row').length > 1) {
@@ -208,7 +221,6 @@
             }
         });
 
-        // Calculate subtotal and total
         function attachRowEvents(row) {
             const select = row.querySelector('.product-select');
             const quantity = row.querySelector('.quantity-input');
@@ -216,7 +228,7 @@
             const subtotal = row.querySelector('.subtotal');
 
             select.addEventListener('change', function() {
-                const option = this.options[this.selectedIndex];
+               const option = this.options[this.selectedIndex];
                 price.value = option.dataset.price || 0;
                 calculateRow(row);
             });
@@ -251,7 +263,6 @@
             
             document.getElementById('dueAmount').value = '$' + due.toFixed(2);
             
-            // Update payment status
             let status = 'Unpaid';
             if (paid >= total && total > 0) {
                 status = 'Paid';
@@ -263,7 +274,6 @@
 
         document.getElementById('paidAmount').addEventListener('input', calculateDue);
 
-        // Initialize events for first row
         attachRowEvents(document.querySelector('.product-row'));
     </script>
 </x-app-layout>

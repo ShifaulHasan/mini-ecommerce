@@ -290,4 +290,57 @@
             }
         });
     </script>
+    <script>
+    // Warehouse change handler
+    document.querySelector('select[name="warehouse_id"]').addEventListener('change', function() {
+        const warehouseId = this.value;
+        
+        if (!warehouseId) {
+            return;
+        }
+
+        // Show loading
+        const productSelect = document.getElementById('productSelect');
+        productSelect.innerHTML = '<option value="">Loading products...</option>';
+        productSelect.disabled = true;
+
+        // Fetch products for selected warehouse
+        fetch(`/sales/get-warehouse-products?warehouse_id=${warehouseId}`, {
+            method: 'GET',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Accept': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                updateProductDropdown(data.products);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Failed to load products');
+        })
+        .finally(() => {
+            productSelect.disabled = false;
+        });
+    });
+
+    function updateProductDropdown(products) {
+        const productSelect = document.getElementById('productSelect');
+        productSelect.innerHTML = '<option value="">Please type product code and select...</option>';
+        
+        products.forEach(product => {
+            const option = document.createElement('option');
+            option.value = product.id;
+            option.dataset.name = product.name;
+            option.dataset.code = `PRD-${product.id}`;
+            option.dataset.price = product.price;
+            option.dataset.stock = product.stock;
+            option.textContent = `PRD-${product.id} - ${product.name} (Stock: ${product.stock}) - $${product.price}`;
+            productSelect.appendChild(option);
+        });
+    }
+</script>
 </x-app-layout>

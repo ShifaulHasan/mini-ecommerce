@@ -107,5 +107,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/pos', [POSController::class, 'index'])->name('pos.index');
     Route::post('/pos/complete-sale', [POSController::class, 'completeSale'])->name('pos.completeSale');
 });
+Route::middleware(['auth', 'verified'])->group(function () {
+    // ... existing routes ...
+    
+    // Sales - Warehouse Products
+    Route::get('/sales/get-warehouse-products', [SaleController::class, 'getWarehouseProducts'])->name('sales.get-warehouse-products');
+});
 
 require __DIR__.'/auth.php';

@@ -1,7 +1,8 @@
 <!-- Sidebar -->
 <div class="sidebar bg-dark" style="width: 250px; min-height: 100vh; position: fixed; left: 0; top: 0; overflow-y: auto;">
     <div class="text-white p-3">
-        <h4 class="mb-4">Business Manager</h4>
+         Inventory Management Software And <br>
+    <span style="color:#c7c9d1;">Smart Billing System with E-Commerce</span>
         
         <!-- Dashboard -->
         <a href="{{ route('dashboard') }}" class="sidebar-link d-block text-white text-decoration-none p-2 mb-1 rounded">

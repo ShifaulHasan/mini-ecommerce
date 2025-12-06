@@ -19,4 +19,19 @@ class Product extends Model
     {
         return $this->hasMany(OrderItem::class);
     }
+    public function warehouse()
+{
+    return $this->belongsTo(Warehouse::class);
+}
+
+public function productWarehouses()
+{
+    return $this->hasMany(ProductWarehouse::class);
+}
+
+// Get stock in specific warehouse
+public function getWarehouseStock($warehouseId)
+{
+    return ProductWarehouse::getStock($this->id, $warehouseId);
+}
 }

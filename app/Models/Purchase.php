@@ -6,19 +6,19 @@ use Illuminate\Database\Eloquent\Model;
 
 class Purchase extends Model
 {
-    protected $fillable = [
-        'reference_number',
-        'supplier_id',
-        'warehouse_id',
-        'purchase_date',
-        'grand_total',
-        'returned_amount',
-        'paid_amount',
-        'due_amount',
-        'purchase_status',
-        'payment_status',
-        'notes'
-    ];
+   protected $fillable = [
+    'reference_number',
+    'supplier_id',
+    'warehouse_id',
+    'purchase_date',
+    'grand_total',
+    'paid_amount',
+    'due_amount',
+    'purchase_status',
+    'payment_status',
+    'payment_method',  // ADD THIS
+    'notes'
+];
 
     public function supplier()
     {
