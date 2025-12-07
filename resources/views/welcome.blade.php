@@ -11,11 +11,13 @@
     <style>
         body{
             background: linear-gradient(135deg, #4A90E2, #50C9C3);
-            height: 100vh;
+            min-height: 100vh;
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
             font-family: 'Segoe UI';
+            padding: 20px;
         }
         .login-card{
             width: 380px;
@@ -46,6 +48,14 @@
         .register-text a:hover{
             text-decoration: underline;
         }
+
+        .footer-text {
+            color: #2C3E50;
+            font-size: 14px;
+            margin-top: 24px;
+            opacity: 0.9;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
@@ -74,10 +84,16 @@
 
         <!-- Register Link -->
         <p class="text-center mt-3 register-text">
-            Don’t have an account?
+            Don't have an account?
             <a href="{{ route('register') }}">Register</a>
         </p>
+        
     </div>
+
+    <!-- Footer -->
+    <p class="footer-text">
+        Developed by Shifaul Hasan &copy; 2026
+    </p>
 
 </body>
 </html>
