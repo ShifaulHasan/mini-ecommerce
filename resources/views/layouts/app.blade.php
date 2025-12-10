@@ -83,9 +83,17 @@
         </a>
 
         <!-- Products -->
-        <a class="nav-link text-white" href="{{ route('products.index') }}" class="{{ request()->is('products*') ? 'active' : '' }}">
-            <i class="bi bi-box-seam"></i> Products
-        </a>
+        <!-- Product Dropdown -->
+<a class="nav-link text-white d-flex justify-content-between align-items-center" data-bs-toggle="collapse" href="#productMenu">
+    <span><i class="bi bi-box-seam"></i> Product</span>
+    <i class="bi bi-chevron-down float-end"></i>
+</a>
+<div class="collapse" id="productMenu">
+    <a class="nav-link text-white ms-4" href="{{ route('products.index') }}">Product List</a>
+    <a class="nav-link text-white ms-4" href="{{ route('adjustments.index') }}">Adjustment List</a>
+    <a class="nav-link text-white ms-4" href="{{ route('adjustments.create') }}">Add Adjustment</a>
+</div>
+
 
         <!-- Purchase -->
         <a class="nav-link text-white" data-bs-toggle="collapse" href="#purchaseMenu">

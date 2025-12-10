@@ -22,6 +22,7 @@ use App\Http\Controllers\PayrollController;
 use App\Http\Controllers\UserManagementController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SettingController;
+use App\Http\Controllers\AdjustmentController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -30,12 +31,27 @@ Route::get('/', function () {
 
 
 Route::middleware(['auth', 'verified'])->group(function () {
+
+   // Adjustments
+    Route::resource('adjustments', AdjustmentController::class);
+    Route::get('adjustments-get-stock', [AdjustmentController::class, 'getStock'])
+         ->name('adjustments.get-stock');
+
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     
     // Inventory
     Route::resource('categories', CategoryController::class);
     Route::resource('products', ProductController::class);
+
+      // Sales - Warehouse Products
+    Route::get('/salesp/get-warehouse-products', [SaleController::class, 'getWarehouseProducts'])
+        ->name('salesp.getWarehouseProducts');
+
+Route::get('/products/generate-code', [ProductController::class, 'generateCode'])
+     ->name('products.generate-code');
+
+
     
     // Orders
     Route::resource('orders', OrderController::class)->only(['index', 'show']);
@@ -114,5 +130,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Sales - Warehouse Products
     Route::get('/sales/get-warehouse-products', [SaleController::class, 'getWarehouseProducts'])->name('sales.get-warehouse-products');
 });
+
+
 
 require __DIR__.'/auth.php';

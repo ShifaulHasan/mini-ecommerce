@@ -2,7 +2,7 @@
 <div class="sidebar bg-dark" style="width: 250px; min-height: 100vh; position: fixed; left: 0; top: 0; overflow-y: auto;">
     <div class="text-white p-3">
          Inventory Management Software And <br>
-    <span style="color:#c7c9d1;">Smart Billing System with E-Commerce</span>
+         <span style="color:#c7c9d1;">Smart Billing System with E-Commerce</span>
         
         <!-- Dashboard -->
         <a href="{{ route('dashboard') }}" class="sidebar-link d-block text-white text-decoration-none p-2 mb-1 rounded">
@@ -19,6 +19,15 @@
                 <a href="{{ route('categories.index') }}" class="sidebar-sublink d-block text-white-50 text-decoration-none ps-4 p-2">Category List</a>
                 <a href="{{ route('products.index') }}" class="sidebar-sublink d-block text-white-50 text-decoration-none ps-4 p-2">Product List</a>
                 <a href="{{ route('products.create') }}" class="sidebar-sublink d-block text-white-50 text-decoration-none ps-4 p-2">Add Product</a>
+
+                <!-- Adjustment Links Added -->
+                <hr class="border-secondary my-1">
+                <a href="{{ route('adjustments.index') }}" class="sidebar-sublink d-block text-white-50 text-decoration-none ps-4 p-2">
+                    <i class="bi bi-sliders"></i> Adjustment List
+                </a>
+                <a href="{{ route('adjustments.create') }}" class="sidebar-sublink d-block text-white-50 text-decoration-none ps-4 p-2">
+                    <i class="bi bi-plus-circle"></i> Add Adjustment
+                </a>
             </div>
         </div>
 

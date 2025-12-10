@@ -156,6 +156,51 @@ class SaleController extends Controller
         $sale->load('customer', 'saleItems.product');
         return view('sales.show', compact('sale'));
     }
+     // ==============================
+    // 🔥 NEW: EDIT SALE
+    // ==============================
+    public function edit($id)
+    {
+        $sale = Sale::with(['saleItems.product', 'customer'])->findOrFail($id);
+        $customers = Customer::all();
+        $warehouses = Warehouse::all();
+
+        return view('sales.edit', compact('sale', 'customers', 'warehouses'));
+    }
+
+    // ==============================
+    // 🔥 NEW: UPDATE SALE
+    // ==============================
+    public function update(Request $request, $id)
+    {
+        $request->validate([
+            'customer_id' => 'required|exists:customers,id',
+            'warehouse_id' => 'required|exists:warehouses,id',
+            'sale_date' => 'required|date',
+        ]);
+
+        DB::beginTransaction();
+
+        try {
+            $sale = Sale::findOrFail($id);
+
+            $sale->update([
+                'customer_id' => $request->customer_id,
+                'warehouse_id' => $request->warehouse_id,
+                'sale_date' => $request->sale_date,
+                'notes' => $request->notes,
+            ]);
+
+            DB::commit();
+
+            return redirect()->route('sales.index')->with('success', 'Sale updated successfully!');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error', $e->getMessage());
+        }
+    }
+
+    
 
     public function destroy(Sale $sale)
     {
