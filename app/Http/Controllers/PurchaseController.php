@@ -3,230 +3,278 @@
 namespace App\Http\Controllers;
 
 use App\Models\Purchase;
-use App\Models\Supplier;
-use App\Models\Warehouse;
+use App\Models\PurchaseItem;
 use App\Models\Product;
+use App\Models\Warehouse;
+use App\Models\Supplier;
 use App\Models\ProductWarehouse;
+use App\Models\PurchasePayment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class PurchaseController extends Controller
 {
-    public function index(Request $request)
+    /** ===========================
+     * PURCHASE LIST
+     * =========================== */
+    public function index()
     {
-        $query = Purchase::with(['supplier', 'warehouse']);
-        
-        // Filter by date range
-        if ($request->filled('start_date')) {
-            $query->whereDate('purchase_date', '>=', $request->start_date);
-        }
-        if ($request->filled('end_date')) {
-            $query->whereDate('purchase_date', '<=', $request->end_date);
-        }
+        $purchases  = Purchase::with(['warehouse','supplier','creator'])
+                        ->latest()
+                        ->paginate(20);
 
-        // Filter by warehouse
-        if ($request->filled('warehouse_id')) {
-            $query->where('warehouse_id', $request->warehouse_id);
-        }
-
-        // Filter by purchase status
-        if ($request->filled('purchase_status')) {
-            $query->where('purchase_status', $request->purchase_status);
-        }
-
-        // Filter by payment status
-        if ($request->filled('payment_status')) {
-            $query->where('payment_status', $request->payment_status);
-        }
-
-        // Search functionality
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function($q) use ($search) {
-                $q->where('reference_number', 'LIKE', "%{$search}%")
-                  ->orWhereHas('supplier', function($q) use ($search) {
-                      $q->where('name', 'LIKE', "%{$search}%");
-                  });
-            });
-        }
-
-        // Pagination
-        $perPage = $request->get('per_page', 10);
-        $purchases = $query->latest()->paginate($perPage)->appends($request->except('page'));
-
-        // Filter options
-        $warehouses = Warehouse::all();
-        $suppliers = Supplier::all();
-
-        return view('purchases.index', compact('purchases', 'warehouses', 'suppliers'));
+        return view('purchases.index', [
+            'purchases'  => $purchases,
+            'warehouses' => Warehouse::all(),
+            'suppliers'  => Supplier::all(),
+        ]);
     }
 
+    /** ===========================
+     * CREATE PAGE
+     * =========================== */
     public function create()
     {
-        $suppliers = Supplier::all();
-        $warehouses = Warehouse::all();
-        $products = Product::all();
-        $referenceNumber = Purchase::generateReferenceNumber();
-
-        return view('purchases.create', compact('suppliers', 'warehouses', 'products', 'referenceNumber'));
-    }
-
-    public function store(Request $request)
-    {
-        $request->validate([
-            'supplier_id' => 'required|exists:suppliers,id',
-            'warehouse_id' => 'required|exists:warehouses,id',
-            'purchase_date' => 'required|date',
-            'payment_method' => 'required|in:cash,card,bank_transfer,mobile_payment,bkash,nagad,bank,cheque',
-            'products' => 'required|array',
-            'products.*.product_id' => 'required|exists:products,id',
-            'products.*.quantity' => 'required|integer|min:1',
-            'products.*.price' => 'required|numeric|min:0'
+        return view('purchases.create', [
+            'warehouses'  => Warehouse::all(),
+            'suppliers'   => Supplier::all(),
+            'products'    => Product::all(),
+            'referenceNo' => Purchase::generateReferenceNo(), // যদি method না থাকে তা model-এ add করে নিও
         ]);
-
-        DB::beginTransaction();
-        try {
-            $grandTotal = 0;
-
-            foreach ($request->products as $product) {
-                $grandTotal += $product['quantity'] * $product['price'];
-            }
-
-            $paidAmount = $request->paid_amount ?? 0;
-            $dueAmount = $grandTotal - $paidAmount;
-
-            $paymentStatus = 'unpaid';
-            if ($paidAmount >= $grandTotal) {
-                $paymentStatus = 'paid';
-            } elseif ($paidAmount > 0) {
-                $paymentStatus = 'partial';
-            }
-
-            // Generate batch ID for this purchase
-            $batchId = ProductWarehouse::generateBatchId();
-
-            // Create purchase
-            $purchase = Purchase::create([
-                'reference_number' => Purchase::generateReferenceNumber(),
-                'supplier_id' => $request->supplier_id,
-                'warehouse_id' => $request->warehouse_id,
-                'purchase_date' => $request->purchase_date,
-                'grand_total' => $grandTotal,
-                'paid_amount' => $paidAmount,
-                'due_amount' => $dueAmount,
-                'purchase_status' => $request->purchase_status ?? 'pending',
-                'payment_status' => $paymentStatus,
-                'payment_method' => $request->payment_method,
-                'notes' => $request->notes
-            ]);
-
-            // Create purchase items and update stock
-            foreach ($request->products as $product) {
-                $subtotal = $product['quantity'] * $product['price'];
-
-                $purchase->purchaseItems()->create([
-                    'product_id' => $product['product_id'],
-                    'quantity' => $product['quantity'],
-                    'price' => $product['price'],
-                    'subtotal' => $subtotal
-                ]);
-
-                // Update main product stock
-                Product::find($product['product_id'])->increment('stock', $product['quantity']);
-
-                // Add to product_warehouse with batch tracking
-                ProductWarehouse::create([
-                    'product_id' => $product['product_id'],
-                    'warehouse_id' => $request->warehouse_id,
-                    'batch_id' => $batchId,
-                    'quantity' => $product['quantity'],
-                    'purchase_id' => $purchase->id
-                ]);
-            }
-
-            DB::commit();
-            return redirect()->route('purchases.index')->with('success', 'Purchase created successfully! Batch ID: ' . $batchId);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return back()->with('error', $e->getMessage())->withInput();
-        }
     }
 
-    public function show(Purchase $purchase)
-    {
-        $purchase->load('supplier', 'warehouse', 'purchaseItems.product');
-        return view('purchases.show', compact('purchase'));
-    }
-
+    /** ===========================
+     * EDIT PURCHASE
+     * =========================== */
     public function edit(Purchase $purchase)
     {
-        $suppliers = Supplier::all();
-        $warehouses = Warehouse::all();
-        $products = Product::all();
-        $purchase->load('purchaseItems');
+        $purchase->load(['items.product','warehouse','supplier']);
 
-        return view('purchases.edit', compact('purchase', 'suppliers', 'warehouses', 'products'));
+        return view('purchases.edit', [
+            'purchase'   => $purchase,
+            'warehouses' => Warehouse::all(),
+            'suppliers'  => Supplier::all(),
+            'products'   => Product::all(),
+        ]);
     }
 
+    /** ===========================
+     * UPDATE PURCHASE
+     * =========================== */
     public function update(Request $request, Purchase $purchase)
     {
         $request->validate([
-            'supplier_id' => 'required|exists:suppliers,id',
             'warehouse_id' => 'required|exists:warehouses,id',
-            'purchase_date' => 'required|date',
-            'purchase_status' => 'required|in:pending,received,cancelled',
-            'paid_amount' => 'nullable|numeric|min:0'
+            'supplier_id'  => 'nullable|exists:suppliers,id',
+            'purchase_date'=> 'required|date',
+            'notes'        => 'nullable|string',
         ]);
-
-        $paidAmount = $request->paid_amount ?? $purchase->paid_amount;
-        $dueAmount = $purchase->grand_total - $paidAmount;
-
-        $paymentStatus = 'unpaid';
-        if ($paidAmount >= $purchase->grand_total) {
-            $paymentStatus = 'paid';
-        } elseif ($paidAmount > 0) {
-            $paymentStatus = 'partial';
-        }
 
         $purchase->update([
-            'supplier_id' => $request->supplier_id,
-            'warehouse_id' => $request->warehouse_id,
+            'warehouse_id'  => $request->warehouse_id,
+            'supplier_id'   => $request->supplier_id,
             'purchase_date' => $request->purchase_date,
-            'purchase_status' => $request->purchase_status,
-            'paid_amount' => $paidAmount,
-            'due_amount' => $dueAmount,
-            'payment_status' => $paymentStatus,
-            'notes' => $request->notes
+            'notes'         => $request->notes,
         ]);
 
-        return redirect()->route('purchases.index')->with('success', 'Purchase updated successfully!');
+        return redirect()->route('purchases.index')
+                ->with('success', 'Purchase updated successfully!');
     }
 
-    public function destroy(Purchase $purchase)
+    /** ===========================
+     * STORE PURCHASE
+     * =========================== */
+    public function store(Request $request)
     {
+        $request->validate([
+            'warehouse_id'   => 'required|exists:warehouses,id',
+            'supplier_id'    => 'nullable|exists:suppliers,id',
+            'purchase_date'  => 'required|date',
+            'reference_no'   => 'required|unique:purchases,reference_no',
+            'products'       => 'required|array|min:1',
+            'payment_method' => 'required|string',
+            'payment_status' => 'required|in:pending,partial,paid',
+            'amount_paid'    => 'nullable|numeric|min:0',
+        ]);
+
         DB::beginTransaction();
+
         try {
-            // Restore stock if purchase was received
-            if ($purchase->purchase_status == 'received') {
-                foreach ($purchase->purchaseItems as $item) {
-                    $item->product->decrement('stock', $item->quantity);
+
+            /** CALCULATE SUBTOTAL */
+            $subtotal = 0;
+            foreach ($request->products as $item) {
+                $subtotal += ($item['quantity'] * $item['cost_price'])
+                           - ($item['discount'] ?? 0)
+                           + ($item['tax'] ?? 0);
+            }
+
+            $taxPercentage  = floatval($request->tax_percentage ?? 0);
+            $taxAmount      = ($subtotal * $taxPercentage) / 100;
+            $discountAmount = floatval($request->discount_value ?? 0);
+            $shippingCost   = floatval($request->shipping_cost ?? 0);
+
+            $grandTotal = $subtotal + $taxAmount - $discountAmount + $shippingCost;
+
+            /** PAYMENT HANDLING */
+            $amountPaid = floatval($request->amount_paid ?? 0);
+            $dueAmount  = $grandTotal - $amountPaid;
+
+            if ($amountPaid >= $grandTotal)     $paymentStatus = 'paid';
+            elseif ($amountPaid > 0)            $paymentStatus = 'partial';
+            else                                 $paymentStatus = 'pending';
+
+            /** DOCUMENT UPLOAD */
+            $documentPath = null;
+            if ($request->hasFile('document')) {
+                $file      = $request->file('document');
+                $filename  = time() . '_' . $file->getClientOriginalName();
+                $file->move(public_path('uploads/purchases'), $filename);
+                $documentPath = 'uploads/purchases/' . $filename;
+            }
+
+            /** CREATE PURCHASE */
+            $purchase = Purchase::create([
+                'purchase_date'   => $request->purchase_date,  // FIXED HERE
+                'reference_no'    => $request->reference_no,
+                'warehouse_id'    => $request->warehouse_id,
+                'supplier_id'     => $request->supplier_id,
+                'status'          => $request->purchase_status ?? 'received',
+
+                'tax_percentage'  => $taxPercentage,
+                'tax_amount'      => $taxAmount,
+                'discount_amount' => $discountAmount,
+                'shipping_cost'   => $shippingCost,
+                'grand_total'     => $grandTotal,
+
+                'payment_method'  => $request->payment_method,
+                'payment_status'  => $paymentStatus,
+                'paid_amount'     => $amountPaid,
+                'due_amount'      => $dueAmount,
+
+                'notes'           => $request->notes,
+                'document'        => $documentPath,
+                'currency'        => $request->currency ?? 'BDT',
+                'exchange_rate'   => $request->exchange_rate ?? 1,
+
+                'created_by'      => auth()->id(),
+            ]);
+
+            /** ADD ITEMS AND STOCK UPDATE */
+            foreach ($request->products as $item) {
+
+                $batchId = $item['batch_id']
+                    ?: 'BATCH-' . date('Ymd') . '-' . strtoupper(substr(uniqid(), -6));
+
+                PurchaseItem::create([
+                    'purchase_id' => $purchase->id,
+                    'product_id'  => $item['product_id'],
+                    'quantity'    => $item['quantity'],
+                    'cost_price'  => $item['cost_price'],
+                    'discount'    => $item['discount'] ?? 0,
+                    'tax'         => $item['tax'] ?? 0,
+                    'batch_id'    => $batchId,
+                    'expiry_date' => $item['expiry_date'] ?? null,
+                ]);
+
+                /** STOCK UPDATE */
+                $product = Product::find($item['product_id']);
+                if ($product) {
+                    $product->increment('stock', $item['quantity']);
+                    $product->cost_price = $item['cost_price'];
+                    $product->save();
                 }
             }
 
-            $purchase->delete();
             DB::commit();
 
-            return redirect()->route('purchases.index')->with('success', 'Purchase deleted successfully!');
+            return response()->json([
+                'success'       => true,
+                'message'       => 'Purchase created successfully!',
+                'purchase_id'   => $purchase->reference_no,
+                'payment_status'=> $paymentStatus,
+                'paid_amount'   => $amountPaid,
+                'due_amount'    => $dueAmount,
+            ]);
+
         } catch (\Exception $e) {
+
             DB::rollBack();
-            return back()->with('error', 'Failed to delete purchase');
+            \Log::error("Purchase Create Error: " . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed: ' . $e->getMessage(),
+            ], 500);
         }
     }
 
-    public function export(Request $request)
+    /** ===========================
+     * SHOW PURCHASE
+     * =========================== */
+    public function show(Purchase $purchase)
     {
-        $purchases = Purchase::with(['supplier', 'warehouse'])->get();
-        return response()->json($purchases);
+        $purchase->load(['warehouse','supplier','items.product','creator']);
+        return view('purchases.show', compact('purchase'));
+    }
+
+    /** ===========================
+     * DELETE PURCHASE
+     * =========================== */
+    public function destroy(Purchase $purchase)
+    {
+        DB::beginTransaction();
+
+        try {
+
+            foreach ($purchase->items as $item) {
+                Product::find($item->product_id)
+                        ->decrement('stock', $item->quantity);
+
+                ProductWarehouse::where('purchase_id', $purchase->id)
+                                ->where('product_id', $item->product_id)
+                                ->delete();
+            }
+
+            if ($purchase->document) {
+                @unlink(public_path($purchase->document));
+            }
+
+            $purchase->delete();
+
+            DB::commit();
+
+            return redirect()->route('purchases.index')
+                    ->with('success', 'Purchase deleted successfully!');
+
+        } catch (\Exception $e) {
+
+            DB::rollBack();
+            return back()->with('error', $e->getMessage());
+        }
+    }
+
+    /** ===========================
+     * PRODUCT DETAILS (AJAX)
+     * =========================== */
+    public function getProductDetails($id)
+    {
+        $product = Product::find($id);
+
+        if (!$product) {
+            return response()->json(['success'=>false,'message'=>'Product not found'],404);
+        }
+
+        return response()->json([
+            'success'=>true,
+            'product'=>[
+                'id'            => $product->id,
+                'name'          => $product->name,
+                'code'          => $product->product_code ?? 'N/A',
+                'cost_price'    => $product->cost_price ?? 0,
+                'current_stock' => $product->stock,
+                'unit'          => optional($product->unit)->name ?? 'pc'
+            ]
+        ]);
     }
 }

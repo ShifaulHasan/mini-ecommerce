@@ -7,13 +7,18 @@ use Illuminate\Database\Eloquent\Model;
 class ProductWarehouse extends Model
 {
     protected $table = 'product_warehouse';
-    
+
     protected $fillable = [
         'product_id',
         'warehouse_id',
         'batch_id',
+        'expiry_date',
         'quantity',
         'purchase_id'
+    ];
+
+    protected $casts = [
+        'expiry_date' => 'date',
     ];
 
     public function product()

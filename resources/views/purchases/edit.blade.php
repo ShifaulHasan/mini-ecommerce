@@ -19,6 +19,7 @@
         @csrf
         @method('PUT')
         
+        <!-- Purchase Information -->
         <div class="card mb-3">
             <div class="card-header bg-primary text-white">
                 <h5 class="mb-0">Purchase Information</h5>
@@ -27,12 +28,13 @@
                 <div class="row g-3">
                     <div class="col-md-4">
                         <label class="form-label">Reference Number</label>
-                        <input type="text" class="form-control" value="{{ $purchase->reference_number }}" readonly>
+                        <input type="text" class="form-control" value="{{ $purchase->reference_no }}" readonly>
                     </div>
 
                     <div class="col-md-4">
                         <label class="form-label">Purchase Date <span class="text-danger">*</span></label>
-                        <input type="date" name="purchase_date" class="form-control @error('purchase_date') is-invalid @enderror" 
+                        <input type="date" name="purchase_date" 
+                               class="form-control @error('purchase_date') is-invalid @enderror" 
                                value="{{ old('purchase_date', $purchase->purchase_date) }}" required>
                         @error('purchase_date')
                         <div class="invalid-feedback">{{ $message }}</div>
@@ -44,7 +46,8 @@
                         <select name="supplier_id" class="form-select @error('supplier_id') is-invalid @enderror" required>
                             <option value="">Select Supplier</option>
                             @foreach($suppliers as $supplier)
-                            <option value="{{ $supplier->id }}" {{ old('supplier_id', $purchase->supplier_id) == $supplier->id ? 'selected' : '' }}>
+                            <option value="{{ $supplier->id }}" 
+                                    {{ old('supplier_id', $purchase->supplier_id) == $supplier->id ? 'selected' : '' }}>
                                 {{ $supplier->name }}
                             </option>
                             @endforeach
@@ -55,11 +58,12 @@
                     </div>
 
                     <div class="col-md-4">
-                        <label class="form-label">Warehouse</label>
-                        <select name="warehouse_id" class="form-select">
+                        <label class="form-label">Warehouse <span class="text-danger">*</span></label>
+                        <select name="warehouse_id" class="form-select" required>
                             <option value="">Select Warehouse</option>
                             @foreach($warehouses as $warehouse)
-                            <option value="{{ $warehouse->id }}" {{ old('warehouse_id', $purchase->warehouse_id) == $warehouse->id ? 'selected' : '' }}>
+                            <option value="{{ $warehouse->id }}" 
+                                    {{ old('warehouse_id', $purchase->warehouse_id) == $warehouse->id ? 'selected' : '' }}>
                                 {{ $warehouse->name }}
                             </option>
                             @endforeach
@@ -67,21 +71,18 @@
                     </div>
 
                     <div class="col-md-4">
-                        <label class="form-label">Purchase Status <span class="text-danger">*</span></label>
-                        <select name="purchase_status" class="form-select @error('purchase_status') is-invalid @enderror" required>
-                            <option value="pending" {{ old('purchase_status', $purchase->purchase_status) == 'pending' ? 'selected' : '' }}>Pending</option>
-                            <option value="received" {{ old('purchase_status', $purchase->purchase_status) == 'received' ? 'selected' : '' }}>Received</option>
-                            <option value="cancelled" {{ old('purchase_status', $purchase->purchase_status) == 'cancelled' ? 'selected' : '' }}>Cancelled</option>
+                        <label class="form-label">Purchase Status</label>
+                        <select name="purchase_status" class="form-select">
+                            <option value="pending" {{ $purchase->purchase_status == 'pending' ? 'selected' : '' }}>Pending</option>
+                            <option value="received" {{ $purchase->purchase_status == 'received' ? 'selected' : '' }}>Received</option>
+                            <option value="cancelled" {{ $purchase->purchase_status == 'cancelled' ? 'selected' : '' }}>Cancelled</option>
                         </select>
-                        @error('purchase_status')
-                        <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
                     </div>
 
                     <div class="col-md-4">
                         <label class="form-label">Paid Amount</label>
                         <input type="number" name="paid_amount" class="form-control" 
-                               step="0.01" value="{{ old('paid_amount', $purchase->paid_amount) }}">
+                               step="0.01" value="{{ old('paid_amount', $purchase->amount_paid ?? 0) }}">
                     </div>
                 </div>
 
@@ -92,7 +93,7 @@
             </div>
         </div>
 
-        <!-- Purchase Items (Read Only) -->
+        <!-- Purchase Items -->
         <div class="card mb-3">
             <div class="card-header bg-success text-white">
                 <h5 class="mb-0">Purchase Items</h5>
@@ -104,53 +105,50 @@
                             <tr>
                                 <th>Product</th>
                                 <th>Quantity</th>
-                                <th>Price</th>
+                                <th>Cost Price</th>
                                 <th>Subtotal</th>
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach($purchase->purchaseItems as $item)
+                            @foreach($purchase->items ?? [] as $item)
                             <tr>
                                 <td>{{ $item->product->name }}</td>
                                 <td>{{ $item->quantity }}</td>
-                                <td>${{ number_format($item->price, 2) }}</td>
-                                <td>${{ number_format($item->subtotal, 2) }}</td>
+                                <td>{{ number_format($item->cost_price, 2) }}</td>
+                                <td>{{ number_format($item->subtotal, 2) }}</td>
                             </tr>
                             @endforeach
                         </tbody>
                         <tfoot class="table-light">
                             <tr>
-                                <td colspan="3" class="text-end"><strong>Grand Total:</strong></td>
-                                <td><strong>${{ number_format($purchase->grand_total, 2) }}</strong></td>
+                                <td colspan="3" class="text-end"><strong>Total:</strong></td>
+                                <td><strong>{{ number_format($purchase->total, 2) }}</strong></td>
                             </tr>
                         </tfoot>
                     </table>
                 </div>
+
                 <div class="alert alert-info">
                     <i class="bi bi-info-circle"></i> To modify purchase items, please delete and create a new purchase.
                 </div>
             </div>
         </div>
 
-        <!-- Summary -->
+        <!-- Payment Summary -->
         <div class="card mb-3">
             <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <h6>Payment Summary</h6>
-                        <div class="d-flex justify-content-between mb-2">
-                            <span>Grand Total:</span>
-                            <strong>${{ number_format($purchase->grand_total, 2) }}</strong>
-                        </div>
-                        <div class="d-flex justify-content-between mb-2">
-                            <span>Paid Amount:</span>
-                            <strong class="text-success">${{ number_format($purchase->paid_amount, 2) }}</strong>
-                        </div>
-                        <div class="d-flex justify-content-between">
-                            <span>Due Amount:</span>
-                            <strong class="text-danger">${{ number_format($purchase->due_amount, 2) }}</strong>
-                        </div>
-                    </div>
+                <h6>Payment Summary</h6>
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Total Amount:</span>
+                    <strong>{{ number_format($purchase->total, 2) }}</strong>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Paid:</span>
+                    <strong class="text-success">{{ number_format($purchase->amount_paid ?? 0, 2) }}</strong>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span>Due:</span>
+                    <strong class="text-danger">{{ number_format(($purchase->total - ($purchase->amount_paid ?? 0)), 2) }}</strong>
                 </div>
             </div>
         </div>
