@@ -82,10 +82,35 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/sales/get-warehouse-products', [SaleController::class, 'getWarehouseProducts'])
          ->name('sales.get-warehouse-products');
 
-    // POS
+    // POS Routes
+
+// POS Routes
+Route::middleware(['auth'])->group(function () {
+
+    // POS main screen
     Route::get('/pos', [POSController::class, 'index'])->name('pos.index');
-    Route::post('/pos/add-to-cart', [POSController::class, 'addToCart'])->name('pos.addToCart');
-    Route::post('/pos/complete-sale', [POSController::class, 'completeSale'])->name('pos.completeSale');
+
+    // Get current cart (AJAX)
+    Route::get('/pos/cart', [POSController::class, 'cart'])->name('pos.cart');
+
+    // Product search (AJAX)
+    Route::get('/pos/search-products', [POSController::class, 'searchProducts'])->name('pos.search');
+
+    // Cart actions
+    Route::post('/pos/add-to-cart/{id}', [POSController::class, 'addToCart'])->name('pos.add');
+    Route::post('/pos/update-qty', [POSController::class, 'updateQty'])->name('pos.update.qty');
+    Route::delete('/pos/remove/{id}', [POSController::class, 'removeItem'])->name('pos.remove');
+    Route::post('/pos/clear', [POSController::class, 'clearCart'])->name('pos.clear');
+
+    // Set customer for current sale
+    Route::post('/pos/set-customer', [POSController::class, 'setCustomer'])->name('pos.set.customer');
+
+    // Complete checkout / store sale
+    Route::post('/pos/store', [POSController::class, 'store'])->name('pos.store');
+    Route::post('/complete-sale', [POSController::class, 'store'])->name('pos.complete-sale');
+});
+
+
 
     // Sale Returns
     Route::get('/sale-returns/get-items/{sale}', [SaleReturnController::class, 'getSaleItems'])

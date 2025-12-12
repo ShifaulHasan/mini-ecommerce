@@ -1,603 +1,546 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>POS - Point of Sale</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
-    
-    <style>
-        body {
-            background: #f8f9fa;
-            font-family: 'Inter', sans-serif;
-            overflow: hidden;
-        }
-
-        .pos-container {
-            height: 100vh;
-            display: flex;
-        }
-
-        .products-section {
-            flex: 1;
-            padding: 1rem;
-            overflow-y: auto;
-            background: #f8f9fa;
-        }
-
-        .cart-section {
-            width: 400px;
-            background: white;
-            border-left: 2px solid #e5e7eb;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .search-bar {
-            padding: 1rem;
-            border-bottom: 2px solid #e5e7eb;
-        }
-
-        .search-input {
-            border-radius: 8px;
-            border: 2px solid #e5e7eb;
-            padding: 0.75rem 1rem;
-            padding-left: 2.5rem;
-        }
-
-        .search-icon {
-            position: absolute;
-            left: 1rem;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #9ca3af;
-        }
-
-        .category-tabs {
-            padding: 1rem;
-            border-bottom: 1px solid #e5e7eb;
-            display: flex;
-            gap: 0.5rem;
-            overflow-x: auto;
-        }
-
-        .category-btn {
-            padding: 0.5rem 1rem;
-            border: 2px solid #e5e7eb;
-            border-radius: 8px;
-            background: white;
-            cursor: pointer;
-            white-space: nowrap;
-            transition: all 0.2s;
-        }
-
-        .category-btn:hover, .category-btn.active {
-            background: #6f42c1;
-            color: white;
-            border-color: #6f42c1;
-        }
-
-        .product-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-            gap: 1rem;
-            padding: 1rem;
-        }
-
-        .product-card {
-            background: white;
-            border: 2px solid #e5e7eb;
-            border-radius: 12px;
-            padding: 1rem;
-            cursor: pointer;
-            transition: all 0.2s;
-            text-align: center;
-        }
-
-        .product-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(111, 66, 193, 0.15);
-            border-color: #6f42c1;
-        }
-
-        .product-image {
-            width: 100%;
-            height: 120px;
-            object-fit: cover;
-            border-radius: 8px;
-            margin-bottom: 0.75rem;
-            background: #f3f4f6;
-        }
-
-        .product-name {
-            font-size: 0.875rem;
-            font-weight: 600;
-            color: #1f2937;
-            margin-bottom: 0.5rem;
-        }
-
-        .product-price {
-            font-size: 1.125rem;
-            font-weight: 700;
-            color: #6f42c1;
-        }
-
-        .product-stock {
-            font-size: 0.75rem;
-            color: #6b7280;
-        }
-
-        .cart-header {
-            padding: 1rem;
-            border-bottom: 2px solid #e5e7eb;
-            background: #6f42c1;
-            color: white;
-        }
-
-        .cart-items {
-            flex: 1;
-            overflow-y: auto;
-            padding: 1rem;
-        }
-
-        .cart-item {
-            background: #f9fafb;
-            border-radius: 8px;
-            padding: 0.75rem;
-            margin-bottom: 0.75rem;
-            display: flex;
-            gap: 0.75rem;
-        }
-
-        .cart-item-image {
-            width: 50px;
-            height: 50px;
-            border-radius: 6px;
-            object-fit: cover;
-            background: #e5e7eb;
-        }
-
-        .cart-item-details {
-            flex: 1;
-        }
-
-        .cart-item-name {
-            font-size: 0.875rem;
-            font-weight: 600;
-            color: #1f2937;
-        }
-
-        .cart-item-price {
-            font-size: 0.75rem;
-            color: #6b7280;
-        }
-
-        .quantity-controls {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            margin-top: 0.5rem;
-        }
-
-        .qty-btn {
-            width: 24px;
-            height: 24px;
-            border-radius: 4px;
-            border: 1px solid #e5e7eb;
-            background: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            font-size: 0.875rem;
-        }
-
-        .qty-btn:hover {
-            background: #f3f4f6;
-        }
-
-        .cart-summary {
-            padding: 1rem;
-            border-top: 2px solid #e5e7eb;
-            background: #f9fafb;
-        }
-
-        .summary-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 0.5rem;
-            font-size: 0.875rem;
-        }
-
-        .summary-row.total {
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: #6f42c1;
-            padding-top: 0.75rem;
-            border-top: 2px solid #e5e7eb;
-            margin-top: 0.5rem;
-        }
-
-        .checkout-section {
-            padding: 1rem;
-            border-top: 2px solid #e5e7eb;
-        }
-
-        .btn-checkout {
-            width: 100%;
-            padding: 1rem;
-            background: #6f42c1;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 1rem;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .btn-checkout:hover {
-            background: #5a32a3;
-            transform: translateY(-1px);
-        }
-
-        .btn-clear {
-            width: 100%;
-            padding: 0.75rem;
-            background: white;
-            color: #ef4444;
-            border: 2px solid #ef4444;
-            border-radius: 8px;
-            font-weight: 600;
-            margin-top: 0.5rem;
-            cursor: pointer;
-        }
-
-        .empty-cart {
-            text-align: center;
-            padding: 3rem 1rem;
-            color: #9ca3af;
-        }
-
-        .badge-stock {
-            background: #d1fae5;
-            color: #065f46;
-            padding: 0.25rem 0.5rem;
-            border-radius: 4px;
-            font-size: 0.75rem;
-        }
-
-        .cart-header a:hover {
-            opacity: 0.8;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="csrf-token" content="{{ csrf_token() }}">
+<title>POS - Point of Sale</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css"/>
+<style>
+/* ====== POS Styles ====== */
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:#f5f7fa; overflow-x:hidden; }
+.pos-container { display:flex; height:100vh; }
+.products-panel { flex:1; display:flex; flex-direction:column; background:#fff; overflow:hidden; }
+.pos-header { background:linear-gradient(135deg,#667eea 0%,#764ba2 100%); color:#fff; padding:15px 20px; display:flex; justify-content:space-between; align-items:center; }
+.search-bar { padding:15px 20px; background:#f8f9fa; border-bottom:2px solid #e9ecef; }
+.search-input { position:relative; }
+.search-input input { width:100%; padding:12px 45px; border:2px solid #dee2e6; border-radius:10px; font-size:16px; }
+.search-input .search-icon { position:absolute; left:15px; top:50%; transform:translateY(-50%); color:#667eea; font-size:20px; }
+.categories-bar { padding:10px 20px; background:white; border-bottom:1px solid #e9ecef; overflow-x:auto; white-space:nowrap; }
+.category-btn { display:inline-block; padding:8px 20px; margin-right:10px; border:2px solid #e9ecef; border-radius:20px; background:white; color:#495057; cursor:pointer; }
+.category-btn:hover, .category-btn.active { background: linear-gradient(135deg,#667eea 0%,#764ba2 100%); color:white; border-color:#667eea; }
+.products-grid { flex:1; overflow-y:auto; padding:20px; display:grid; grid-template-columns: repeat(auto-fill,minmax(180px,1fr)); gap:15px; align-content:start; }
+.product-card { background:white; border:2px solid #e9ecef; border-radius:12px; padding:15px; cursor:pointer; transition:all .3s; text-align:center; min-height:200px; display:flex; flex-direction:column; }
+.product-card:hover { transform:translateY(-5px); box-shadow:0 10px 25px rgba(102,126,234,0.2); border-color:#667eea; }
+.product-image { width:100%; height:100px; object-fit:cover; border-radius:8px; margin-bottom:10px; background:#f8f9fa; display:flex; align-items:center; justify-content:center; font-size:48px; color:#dee2e6; }
+.product-name { font-weight:600; margin-bottom:5px; font-size:14px; color:#212529; flex:1; }
+.product-stock { font-size:12px; color:#6c757d; margin-bottom:8px; }
+.product-price { font-size:18px; font-weight:700; color:#667eea; }
+.cart-panel { width:450px; background:white; display:flex; flex-direction:column; border-left:2px solid #e9ecef; }
+.cart-header { background:linear-gradient(135deg,#667eea 0%,#764ba2 100%); color:white; padding:15px 20px; }
+.customer-section { padding:15px 20px; background:#f8f9fa; border-bottom:2px solid #e9ecef; }
+.customer-section select { width:100%; padding:10px; border:2px solid #dee2e6; border-radius:8px; font-size:14px; }
+.cart-items { flex:1; overflow-y:auto; padding:15px; }
+.cart-item { background:#f8f9fa; border-radius:10px; padding:12px; margin-bottom:10px; display:flex; align-items:center; gap:10px; }
+.cart-item-info { flex:1; }
+.cart-item-name { font-weight:600; font-size:14px; margin-bottom:5px; }
+.cart-item-price { color:#667eea; font-weight:600; }
+.cart-item-qty { display:flex; align-items:center; gap:5px; }
+.qty-btn { width:30px; height:30px; border:none; background:#667eea; color:white; border-radius:5px; cursor:pointer; font-weight:600; }
+.qty-input { width:50px; text-align:center; border:1px solid #dee2e6; border-radius:5px; padding:5px; }
+.remove-btn { background:#dc3545; color:white; border:none; width:30px; height:30px; border-radius:5px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+.cart-summary { padding:20px; background:#f8f9fa; border-top:2px solid #e9ecef; }
+.summary-row { display:flex; justify-content:space-between; margin-bottom:12px; font-size:15px; }
+.summary-row.total { font-size:24px; font-weight:700; color:#667eea; border-top:2px solid #dee2e6; padding-top:12px; margin-top:12px; }
+.tax-discount-section { display:flex; gap:10px; margin-bottom:15px; }
+.tax-discount-section input { flex:1; padding:8px; border:1px solid #dee2e6; border-radius:5px; }
+.checkout-btn { width:100%; padding:15px; background:linear-gradient(135deg,#667eea 0%,#764ba2 100%); color:white; border:none; border-radius:10px; font-size:18px; font-weight:600; cursor:pointer; transition:all .3s; }
+.checkout-btn:disabled { background:#6c757d; cursor:not-allowed; }
+.empty-cart { text-align:center; padding:40px 20px; color:#6c757d; }
+.payment-method { border:2px solid #e0e0e0; border-radius:10px; padding:15px; margin-bottom:12px; cursor:pointer; transition:all .3s; }
+.payment-method:hover { border-color:#667eea; background:#f8f9ff; }
+.payment-method.active { border-color:#667eea; background:linear-gradient(135deg,#f8f9ff 0%,#e8ecff 100%); }
+.payment-icon { font-size:24px; margin-right:10px; }
+.numpad { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:15px; }
+.numpad-btn { padding:20px; font-size:24px; font-weight:600; border:2px solid #dee2e6; background:white; border-radius:10px; cursor:pointer; transition:all .2s; }
+.numpad-btn:hover { background:#667eea; color:white; border-color:#667eea; }
+.numpad-btn.clear { background:#dc3545; color:white; border-color:#dc3545; }
+</style>
 </head>
 <body>
-    <div class="pos-container">
-
-        <!-- Products Section -->
-        <div class="products-section">
-
-            <!-- Search Bar -->
-            <div class="search-bar">
-                <div class="position-relative">
-                    <i class="bi bi-search search-icon"></i>
-                    <input type="text" id="searchInput" class="form-control search-input" 
-                           placeholder="Search products by name or code...">
-                </div>
-            </div>
-
-            <!-- Category Tabs -->
-            <div class="category-tabs">
-                <button class="category-btn active" onclick="filterCategory('')">All</button>
-                @foreach($categories as $category)
-                <button class="category-btn" onclick="filterCategory({{ $category->id }})">
-                    {{ $category->name }}
-                </button>
-                @endforeach
-            </div>
-
-            <!-- Product Grid -->
-            <div class="product-grid" id="productGrid">
-                @foreach($products as $product)
-                <div class="product-card" data-category="{{ $product->category_id }}"
-                     onclick="addToCart({{ $product->id }}, '{{ $product->name }}', {{ $product->price }}, {{ $product->stock }}, '{{ $product->image }}')">
-                    @if($product->image)
-                    <img src="{{ asset('images/products/'.$product->image) }}" class="product-image" alt="{{ $product->name }}">
-                    @else
-                    <div class="product-image d-flex align-items-center justify-content-center">
-                        <i class="bi bi-image text-muted" style="font-size: 2rem;"></i>
-                    </div>
-                    @endif
-                    <div class="product-name">{{ $product->name }}</div>
-                    <div class="product-price">${{ number_format($product->price, 2) }}</div>
-                    <div class="product-stock">
-                        <span class="badge-stock">Stock: {{ $product->stock }}</span>
-                    </div>
-                </div>
-                @endforeach
+<div class="pos-container">
+    <!-- Products Panel -->
+    <div class="products-panel">
+        <div class="pos-header">
+            <h4><i class="bi bi-shop"></i> POS</h4>
+            <a href="{{ route('sales.index') }}" class="btn btn-light btn-sm"><i class="bi bi-arrow-left"></i> Exit</a>
+        </div>
+        <div class="search-bar">
+            <div class="search-input">
+                <i class="bi bi-search search-icon"></i>
+                <input type="text" id="searchProduct" placeholder="Search products by name or code..." autocomplete="off">
             </div>
         </div>
-
-        <!-- Cart Section -->
-        <div class="cart-section">
-
-            <!-- Cart Header with Back Button Added -->
-            <div class="cart-header d-flex align-items-center">
-                <a href="{{ route('sales.index') }}" class="text-white me-3" 
-                   style="font-size: 1.4rem; text-decoration: none;">
-                    <i class="bi bi-arrow-left-circle"></i>
-                </a>
-                <h5 class="mb-0"><i class="bi bi-cart3 me-2"></i>Cart</h5>
-            </div>
-
-            <!-- Cart Items -->
-            <div class="cart-items" id="cartItems">
-                <div class="empty-cart">
-                    <i class="bi bi-cart-x" style="font-size: 3rem;"></i>
-                    <p class="mt-2">Cart is empty</p>
+        <div class="categories-bar">
+            <button class="category-btn active" data-category="">All Products</button>
+            @foreach($categories as $category)
+            <button class="category-btn" data-category="{{ $category->id }}">{{ $category->name }}</button>
+            @endforeach
+        </div>
+        <div class="products-grid" id="productsGrid">
+            @foreach($products as $product)
+            <div class="product-card" data-id="{{ $product->id }}" data-category="{{ $product->category_id ?? '' }}">
+                <div class="product-image">
+                    @if($product->image)
+                        <img src="{{ asset($product->image) }}" style="max-width:100%; max-height:100px; border-radius:8px;">
+                    @else
+                        <i class="bi bi-box-seam"></i>
+                    @endif
                 </div>
+                <div class="product-name">{{ $product->name }}</div>
+                <div class="product-stock">Stock: {{ $product->stock ?? 0 }}</div>
+                <div class="product-price">${{ number_format($product->price ?? 0,2) }}</div>
+                <button class="btn btn-primary btn-sm mt-2" onclick="addToCart({{ $product->id }})">Add</button>
             </div>
-
-            <!-- Cart Summary -->
-            <div class="cart-summary">
-                <div class="summary-row">
-                    <span>Subtotal:</span>
-                    <strong id="subtotal">$0.00</strong>
-                </div>
-                <div class="summary-row">
-                    <span>Tax (0%):</span>
-                    <strong id="tax">$0.00</strong>
-                </div>
-                <div class="summary-row total">
-                    <span>Total:</span>
-                    <strong id="total">$0.00</strong>
-                </div>
-            </div>
-
-            <!-- Checkout Section -->
-            <div class="checkout-section">
-                <select id="warehouseSelect" class="form-select mb-2">
-                    <option value="">Select Warehouse *</option>
-                    @foreach($warehouses as $warehouse)
-                    <option value="{{ $warehouse->id }}">{{ $warehouse->name }}</option>
-                    @endforeach
-                </select>
-
-                <select id="customerSelect" class="form-select mb-2">
-                    <option value="">Walk-in Customer</option>
-                    @foreach($customers as $customer)
-                    <option value="{{ $customer->id }}">{{ $customer->name }}</option>
-                    @endforeach
-                </select>
-
-                <select id="paymentMethod" class="form-select mb-2">
-                    <option value="cash">Cash</option>
-                    <option value="card">Card</option>
-                    <option value="bank_transfer">Bank Transfer</option>
-                    <option value="mobile_payment">Mobile Payment</option>
-                </select>
-
-                <input type="number" id="paidAmount" class="form-control mb-2" 
-                       placeholder="Paid Amount" step="0.01" min="0">
-
-                <button class="btn-checkout" onclick="checkout()">
-                    <i class="bi bi-check-circle me-2"></i>Complete Sale
-                </button>
-                <button class="btn-clear" onclick="clearCart()">
-                    <i class="bi bi-trash me-2"></i>Clear Cart
-                </button>
-            </div>
-
+            @endforeach
         </div>
     </div>
 
-    <!-- JS Script -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Cart Panel -->
+    <div class="cart-panel">
+        <div class="cart-header"><h5><i class="bi bi-cart3"></i> Current Sale</h5></div>
+        <div class="customer-section">
+            <label>Customer</label>
+            <select id="customerId" class="form-select">
+                @foreach($customers as $customer)
+                <option value="{{ $customer->id }}">{{ $customer->name }}</option>
+                @endforeach
+            </select>
+        </div>
+        <div class="cart-items" id="cartItems">
+            <div class="empty-cart">
+                <i class="bi bi-cart-x" style="font-size:48px;"></i>
+                <p class="mt-2">Cart is empty<br>Add products to start</p>
+            </div>
+        </div>
+        <div class="cart-summary">
+            <div class="tax-discount-section">
+                <input type="number" id="taxPercentage" placeholder="Tax %" value="0" step="0.01" onchange="renderCart()">
+                <input type="number" id="discountAmount" placeholder="Discount $" value="0" step="0.01" onchange="renderCart()">
+            </div>
+            <div class="summary-row"><span>Items:</span><strong id="totalItems">0</strong></div>
+            <div class="summary-row"><span>Subtotal:</span><strong id="subtotal">$0.00</strong></div>
+            <div class="summary-row"><span>Tax:</span><strong id="taxAmount">$0.00</strong></div>
+            <div class="summary-row"><span>Discount:</span><strong id="discountDisplay">$0.00</strong></div>
+            <div class="summary-row total"><span>Total:</span><strong id="grandTotal">$0.00</strong></div>
+            <button class="checkout-btn" id="checkoutBtn" onclick="openPaymentModal()" disabled>Checkout</button>
+        </div>
+    </div>
+</div>
 
-    <script>
-        let cart = [];
+<!-- Payment Modal -->
+<div class="modal fade" id="paymentModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header" style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%); color:white;">
+                <h5 class="modal-title"><i class="bi bi-credit-card"></i> Payment</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-7">
+                        <h6 class="mb-3 fw-bold">Payment Method</h6>
+                        
+                        <div class="payment-method active" onclick="selectPayment('cash')">
+                            <div class="d-flex align-items-center">
+                                <input type="radio" name="payment_method" value="cash" id="pay_cash" checked>
+                                <label for="pay_cash" class="ms-3 mb-0 flex-grow-1">
+                                    <i class="bi bi-cash-stack payment-icon text-success"></i>
+                                    <strong>Cash</strong>
+                                </label>
+                            </div>
+                        </div>
 
-        function addToCart(id, name, price, stock, image) {
-            const existingItem = cart.find(item => item.product_id === id);
-            
-            if (existingItem) {
-                if (existingItem.quantity < stock) {
-                    existingItem.quantity++;
-                } else {
-                    alert('Insufficient stock!');
-                    return;
-                }
-            } else {
-                cart.push({
-                    product_id: id,
-                    name,
-                    price,
-                    quantity: 1,
-                    stock,
-                    image
-                });
-            }
-            updateCart();
-        }
+                        <div class="payment-method" onclick="selectPayment('card')">
+                            <div class="d-flex align-items-center">
+                                <input type="radio" name="payment_method" value="card" id="pay_card">
+                                <label for="pay_card" class="ms-3 mb-0 flex-grow-1">
+                                    <i class="bi bi-credit-card payment-icon text-primary"></i>
+                                    <strong>Card</strong>
+                                </label>
+                            </div>
+                        </div>
 
-        function updateCart() {
-            const cartItems = document.getElementById('cartItems');
+                        <div class="payment-method" onclick="selectPayment('bkash')">
+                            <div class="d-flex align-items-center">
+                                <input type="radio" name="payment_method" value="bkash" id="pay_bkash">
+                                <label for="pay_bkash" class="ms-3 mb-0 flex-grow-1">
+                                    <i class="bi bi-phone payment-icon text-danger"></i>
+                                    <strong>bKash</strong>
+                                </label>
+                            </div>
+                        </div>
 
-            if (cart.length === 0) {
-                cartItems.innerHTML = `
-                    <div class="empty-cart">
-                        <i class="bi bi-cart-x" style="font-size: 3rem;"></i>
-                        <p class="mt-2">Cart is empty</p>
-                    </div>
-                `;
-                updateSummary();
-                return;
-            }
-
-            let html = '';
-            cart.forEach((item, index) => {
-                const itemTotal = item.price * item.quantity;
-                const imageSrc = item.image ? `/images/products/${item.image}` : '';
-
-                html += `
-                    <div class="cart-item">
-                        ${item.image 
-                        ? `<img src="${imageSrc}" class="cart-item-image">`
-                        : `<div class="cart-item-image d-flex align-items-center justify-content-center">
-                                <i class="bi bi-image"></i>
-                           </div>`}
-
-                        <div class="cart-item-details">
-                            <div class="cart-item-name">${item.name}</div>
-                            <div class="cart-item-price">$${item.price.toFixed(2)} each</div>
-
-                            <div class="quantity-controls">
-                                <button class="qty-btn" onclick="decreaseQty(${index})">-</button>
-                                <span style="min-width: 30px; text-align: center;">${item.quantity}</span>
-                                <button class="qty-btn" onclick="increaseQty(${index})">+</button>
-
-                                <span class="ms-auto fw-bold">$${itemTotal.toFixed(2)}</span>
-
-                                <button class="qty-btn text-danger" onclick="removeItem(${index})">
-                                    <i class="bi bi-trash"></i>
-                                </button>
+                        <div class="payment-method" onclick="selectPayment('nagad')">
+                            <div class="d-flex align-items-center">
+                                <input type="radio" name="payment_method" value="nagad" id="pay_nagad">
+                                <label for="pay_nagad" class="ms-3 mb-0 flex-grow-1">
+                                    <i class="bi bi-phone payment-icon text-warning"></i>
+                                    <strong>Nagad</strong>
+                                </label>
                             </div>
                         </div>
                     </div>
-                `;
-            });
 
-            cartItems.innerHTML = html;
-            updateSummary();
+                    <div class="col-md-5">
+                        <div class="bg-light p-3 rounded">
+                            <h6 class="fw-bold mb-3">Payment Details</h6>
+                            <div class="d-flex justify-content-between mb-3">
+                                <span>Total Amount:</span>
+                                <strong id="modalTotal" style="font-size:20px; color:#667eea;">$0.00</strong>
+                            </div>
+                            
+                            <label class="form-label fw-bold">Amount Paying</label>
+                            <input type="number" id="amountPaying" class="form-control form-control-lg mb-3" step="0.01" onchange="calculateChange()">
+                            
+                            <label class="form-label fw-bold">Change</label>
+                            <input type="text" id="changeAmount" class="form-control form-control-lg mb-3" readonly style="background:white; font-size:24px; font-weight:700; color:#28a745;">
+
+                            <!-- Number Pad -->
+                            <div class="numpad">
+                                <button class="numpad-btn" onclick="addDigit('7')">7</button>
+                                <button class="numpad-btn" onclick="addDigit('8')">8</button>
+                                <button class="numpad-btn" onclick="addDigit('9')">9</button>
+                                <button class="numpad-btn" onclick="addDigit('4')">4</button>
+                                <button class="numpad-btn" onclick="addDigit('5')">5</button>
+                                <button class="numpad-btn" onclick="addDigit('6')">6</button>
+                                <button class="numpad-btn" onclick="addDigit('1')">1</button>
+                                <button class="numpad-btn" onclick="addDigit('2')">2</button>
+                                <button class="numpad-btn" onclick="addDigit('3')">3</button>
+                                <button class="numpad-btn" onclick="addDigit('0')">0</button>
+                                <button class="numpad-btn" onclick="addDigit('.')">.</button>
+                                <button class="numpad-btn clear" onclick="clearAmount()">C</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary btn-lg" onclick="completeSale()">
+                    <i class="bi bi-check-circle"></i> Complete Sale
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const CSRF_TOKEN = '{{ csrf_token() }}';
+let cart = [];
+let warehouseId = {{ $mainWarehouse ? $mainWarehouse->id : 'null' }};
+
+/**
+ * Fetch current cart from server
+ */
+function fetchCart() {
+    fetch('{{ route("pos.cart") }}')
+    .then(res => res.json())
+    .then(data => {
+        if(data.success) {
+            cart = data.cart || [];
+            renderCart();
         }
+    })
+    .catch(err => console.error('Fetch cart error:', err));
+}
 
-        function increaseQty(index) {
-            if (cart[index].quantity < cart[index].stock) {
-                cart[index].quantity++;
-                updateCart();
-            } else {
-                alert('Insufficient stock!');
-            }
+/**
+ * Add product to cart
+ */
+function addToCart(product_id) {
+    fetch(`{{ url("/pos/add-to-cart") }}/${product_id}`, {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': CSRF_TOKEN,
+            'Content-Type': 'application/json'
         }
-
-        function decreaseQty(index) {
-            if (cart[index].quantity > 1) {
-                cart[index].quantity--;
-                updateCart();
-            }
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            cart = data.cart || [];
+            renderCart();
+        } else {
+            alert(data.message || 'Could not add product');
         }
+    })
+    .catch(err => {
+        console.error('Add to cart error:', err);
+        alert('Error adding product to cart');
+    });
+}
 
-        function removeItem(index) {
-            cart.splice(index, 1);
-            updateCart();
+/**
+ * Update quantity of a cart item
+ */
+function updateQty(product_id, quantity) {
+    quantity = parseInt(quantity);
+    if (quantity < 1) return removeItem(product_id);
+
+    fetch('{{ route("pos.update.qty") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': CSRF_TOKEN
+        },
+        body: JSON.stringify({ product_id, quantity })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            cart = data.cart || [];
+            renderCart();
+        } else {
+            alert(data.message || 'Could not update quantity');
         }
+    })
+    .catch(err => console.error('Update qty error:', err));
+}
 
-        function clearCart() {
-            if (confirm('Clear all items from cart?')) {
-                cart = [];
-                updateCart();
-            }
+/**
+ * Remove item from cart
+ */
+function removeItem(product_id) {
+    fetch(`{{ url("/pos/remove") }}/${product_id}`, {
+        method: 'DELETE',
+        headers: {
+            'X-CSRF-TOKEN': CSRF_TOKEN
         }
-
-        function updateSummary() {
-            let subtotal = 0;
-            cart.forEach(item => subtotal += item.price * item.quantity);
-
-            const tax = 0;
-            const total = subtotal + tax;
-
-            document.getElementById('subtotal').textContent = `$${subtotal.toFixed(2)}`;
-            document.getElementById('tax').textContent = `$${tax.toFixed(2)}`;
-            document.getElementById('total').textContent = `$${total.toFixed(2)}`;
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            cart = data.cart || [];
+            renderCart();
         }
+    })
+    .catch(err => console.error('Remove item error:', err));
+}
 
-        async function checkout() {
-            if (cart.length === 0) {
-                alert('Cart is empty!');
-                return;
-            }
+/**
+ * Open payment modal
+ */
+function openPaymentModal() {
+    if (!cart || cart.length === 0) {
+        alert('Cart is empty!');
+        return;
+    }
 
-            const warehouseId = document.getElementById('warehouseSelect').value;
-            if (!warehouseId) {
-                alert('Please select a warehouse!');
-                return;
-            }
+    const customerId = document.getElementById('customerId').value;
+    if (!customerId) {
+        alert('Please select a customer.');
+        return;
+    }
 
-            const paidAmount = parseFloat(document.getElementById('paidAmount').value) || 0;
-            const total = parseFloat(document.getElementById('total').textContent.replace('$', ''));
+    const grandTotal = document.getElementById('grandTotal').textContent;
+    document.getElementById('modalTotal').textContent = grandTotal;
+    document.getElementById('amountPaying').value = grandTotal.replace('$', '');
+    calculateChange();
+    
+    const modal = new bootstrap.Modal(document.getElementById('paymentModal'));
+    modal.show();
+}
 
-            if (paidAmount < total) {
-                if (!confirm(`Paid amount ($${paidAmount}) is less than total ($${total}). Continue as partial payment?`)) {
-                    return;
-                }
-            }
+/**
+ * Select payment method
+ */
+function selectPayment(method) {
+    document.querySelectorAll('.payment-method').forEach(el => el.classList.remove('active'));
+    event.currentTarget.classList.add('active');
+    document.getElementById('pay_' + method).checked = true;
+}
 
-            const data = {
-                warehouse_id: warehouseId,
-                customer_id: document.getElementById('customerSelect').value || null,
-                payment_method: document.getElementById('paymentMethod').value,
-                paid_amount: paidAmount,
-                cart: cart,
-                total: total,
-                _token: '{{ csrf_token() }}'
-            };
+/**
+ * Number pad functions
+ */
+function addDigit(digit) {
+    const input = document.getElementById('amountPaying');
+    input.value = input.value + digit;
+    calculateChange();
+}
 
-            try {
-                const response = await fetch('{{ route("pos.completeSale") }}', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                    },
-                    body: JSON.stringify(data)
-                });
+function clearAmount() {
+    document.getElementById('amountPaying').value = '';
+    calculateChange();
+}
 
-                const result = await response.json();
+function calculateChange() {
+    const total = parseFloat(document.getElementById('modalTotal').textContent.replace('$', ''));
+    const paying = parseFloat(document.getElementById('amountPaying').value) || 0;
+    const change = paying - total;
+    document.getElementById('changeAmount').value = change >= 0 ? '$' + change.toFixed(2) : '$0.00';
+}
 
-                if (result.success) {
-                    alert(`Sale completed successfully!\nReference: ${result.reference}`);
-                    cart = [];
-                    updateCart();
-                    document.getElementById('paidAmount').value = '';
-                    document.getElementById('warehouseSelect').value = '';
-                    document.getElementById('customerSelect').value = '';
-                } else {
-                    alert('Error: ' + result.message);
-                }
-            } catch (error) {
-                alert('Error completing sale!');
-                console.error(error);
-            }
+/**
+ * Complete sale / checkout
+ */
+function completeSale() {
+    if (!cart || cart.length === 0) {
+        alert('Cart is empty!');
+        return;
+    }
+
+    const customerId = parseInt(document.getElementById('customerId').value);
+    if (!customerId) {
+        alert('Please select a customer.');
+        return;
+    }
+
+    const paymentMethod = document.querySelector('input[name="payment_method"]:checked');
+    if (!paymentMethod) {
+        alert('Please select a payment method.');
+        return;
+    }
+
+    const amountPaying = parseFloat(document.getElementById('amountPaying').value) || 0;
+    const grandTotal = parseFloat(document.getElementById('modalTotal').textContent.replace('$', ''));
+
+    if (amountPaying < grandTotal) {
+        if (!confirm('Amount paid is less than total. Create partial payment?')) {
+            return;
         }
+    }
 
-        document.getElementById('searchInput').addEventListener('input', function(e) {
-            const search = e.target.value.toLowerCase();
-            const products = document.querySelectorAll('.product-card');
+    const tax = parseFloat(document.getElementById('taxPercentage').value) || 0;
+    const discount = parseFloat(document.getElementById('discountAmount').value) || 0;
+
+    const payload = {
+        warehouse_id: warehouseId,
+        customer_id: customerId,
+        products: cart.map(item => ({
+            product_id: item.product_id,
+            quantity: item.quantity,
+            unit_price: item.unit_price,
+            discount: item.discount || 0
+        })),
+        payment_method: paymentMethod.value,
+        amount_paid: amountPaying,
+        tax_percentage: tax,
+        discount_amount: discount
+    };
+
+    // Disable button
+    const btn = event.target;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Processing...';
+
+    fetch('{{ route("pos.store") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': CSRF_TOKEN
+        },
+        body: JSON.stringify(payload)
+    })
+    .then(res => res.json())
+    .then(data => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-check-circle"></i> Complete Sale';
+        
+        if (data.success) {
+            alert(`✅ Sale completed!\n\nReference: ${data.reference_no}\nChange: $${data.change.toFixed(2)}`);
             
-            products.forEach(product => {
-                const name = product.querySelector('.product-name').textContent.toLowerCase();
-                product.style.display = name.includes(search) ? 'block' : 'none';
-            });
+            // Reset cart
+            cart = [];
+            renderCart();
+            document.getElementById('taxPercentage').value = 0;
+            document.getElementById('discountAmount').value = 0;
+            
+            // Close modal
+            bootstrap.Modal.getInstance(document.getElementById('paymentModal')).hide();
+        } else if (data.errors) {
+            let msg = 'Validation errors:\n';
+            for (const key in data.errors) {
+                msg += `${data.errors[key].join(', ')}\n`;
+            }
+            alert(msg);
+        } else {
+            alert('❌ Error: ' + (data.message || 'Unknown error'));
+        }
+    })
+    .catch(err => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-check-circle"></i> Complete Sale';
+        console.error('Complete sale error:', err);
+        alert('❌ Server error occurred');
+    });
+}
+
+/**
+ * Render cart in HTML
+ */
+function renderCart() {
+    const el = document.getElementById('cartItems');
+    if(!cart || cart.length === 0){
+        el.innerHTML = `<div class="empty-cart">
+            <i class="bi bi-cart-x" style="font-size:48px;"></i>
+            <p class="mt-2">Cart is empty<br>Add products to start</p>
+        </div>`;
+        document.getElementById('checkoutBtn').disabled = true;
+        updateSummary();
+        return;
+    }
+
+    document.getElementById('checkoutBtn').disabled = false;
+
+    el.innerHTML = cart.map(item => `
+        <div class="cart-item">
+            <div class="cart-item-info">
+                <div class="cart-item-name">${item.name}</div>
+                <div class="cart-item-price">$${item.unit_price} × ${item.quantity}</div>
+            </div>
+            <div class="cart-item-qty">
+                <button class="qty-btn" onclick="updateQty(${item.product_id},${item.quantity-1})">-</button>
+                <input class="qty-input" type="number" value="${item.quantity}" onchange="updateQty(${item.product_id},this.value)">
+                <button class="qty-btn" onclick="updateQty(${item.product_id},${item.quantity+1})">+</button>
+                <button class="remove-btn" onclick="removeItem(${item.product_id})"><i class="bi bi-trash"></i></button>
+            </div>
+        </div>
+    `).join('');
+
+    updateSummary();
+}
+
+function updateSummary() {
+    const subtotal = cart.reduce((s,i)=>s+(i.unit_price*i.quantity),0);
+    const tax = parseFloat(document.getElementById('taxPercentage').value) || 0;
+    const discount = parseFloat(document.getElementById('discountAmount').value) || 0;
+    const taxAmount = (subtotal * tax) / 100;
+    const grand = subtotal + taxAmount - discount;
+
+    document.getElementById('totalItems').textContent = cart.length;
+    document.getElementById('subtotal').textContent = '$' + subtotal.toFixed(2);
+    document.getElementById('taxAmount').textContent = '$' + taxAmount.toFixed(2);
+    document.getElementById('discountDisplay').textContent = '$' + discount.toFixed(2);
+    document.getElementById('grandTotal').textContent = '$' + grand.toFixed(2);
+}
+
+// Search products
+document.getElementById('searchProduct').addEventListener('input', function(){
+    const q = this.value.toLowerCase();
+    document.querySelectorAll('.product-card').forEach(card => {
+        card.style.display = card.querySelector('.product-name').textContent.toLowerCase().includes(q) ? 'flex' : 'none';
+    });
+});
+
+// Category filter
+document.querySelectorAll('.category-btn').forEach(btn => {
+    btn.addEventListener('click', function(){
+        document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const cat = btn.dataset.category;
+        document.querySelectorAll('.product-card').forEach(card => {
+            card.style.display = !cat || card.dataset.category==cat ? 'flex' : 'none';
         });
+    });
+});
 
-        function filterCategory(categoryId) {
-            const products = document.querySelectorAll('.product-card');
-            const buttons = document.querySelectorAll('.category-btn');
-            
-            buttons.forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
-            
-            products.forEach(product => {
-                if (!categoryId || product.dataset.category == categoryId) {
-                    product.style.display = 'block';
-                } else {
-                    product.style.display = 'none';
-                }
-            });
-        }
-    </script>
+// Initial fetch
+fetchCart();
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

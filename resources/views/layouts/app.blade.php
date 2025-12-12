@@ -113,7 +113,9 @@
         <div class="collapse" id="saleMenu">
             <a class="nav-link text-white" href="{{ route('sales.index') }}">Sale List</a>
             <a class="nav-link text-white-50 ms-4" href="{{ route('sales.create') }}">Add Sale</a>
-            <a class="nav-link text-white-50 ms-4" href="{{ route('pos.index') }}">POS</a>
+            <a href="{{ route('pos.index') }}" class="nav-link">
+    <i class="bi bi-shop"></i> POS
+</a>
         </div>
 
         <!-- Return -->

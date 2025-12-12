@@ -21,8 +21,23 @@ class Sale extends Model
         'payment_method',
         'sale_type',
         'delivery_status',
-        'notes'
+        'notes',
+        'created_at',
+        'updated_at',
     ];
+
+    protected $casts = [
+        'sale_date' => 'date',
+        'grand_total' => 'decimal:2',
+        'returned_amount' => 'decimal:2',
+        'paid_amount' => 'decimal:2',
+        'due_amount' => 'decimal:2',
+    ];
+
+    public function items()
+    {
+        return $this->hasMany(SaleItem::class);
+    }
 
     public function customer()
     {
@@ -32,25 +47,5 @@ class Sale extends Model
     public function warehouse()
     {
         return $this->belongsTo(Warehouse::class);
-    }
-
-    public function saleItems()
-    {
-        return $this->hasMany(SaleItem::class);
-    }
-
-    public static function generateReferenceNumber()
-    {
-        $year = date('Y');
-        $lastSale = self::whereYear('created_at', $year)->latest()->first();
-        
-        if ($lastSale) {
-            $lastNumber = (int) substr($lastSale->reference_number, -3);
-            $newNumber = str_pad($lastNumber + 1, 3, '0', STR_PAD_LEFT);
-        } else {
-            $newNumber = '001';
-        }
-        
-        return 'SALE-' . $year . '-' . $newNumber;
     }
 }
