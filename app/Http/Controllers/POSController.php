@@ -28,7 +28,7 @@ class POSController extends Controller
         $customers  = Customer::orderBy('name', 'ASC')->get();
         $categories = Category::orderBy('name')->get();
 
-        // শুধু থাকা column use করি
+        // column use 
         $products = Product::select('id', 'name', 'price', 'stock', 'image')->get();
 
         return view('pos.index', compact(

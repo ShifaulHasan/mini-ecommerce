@@ -2,50 +2,118 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Sale extends Model
 {
+    use HasFactory;
+
+    /**
+     * ========================
+     * Mass Assignable Fields
+     * ========================
+     */
     protected $fillable = [
-        'reference_number',
+        'reference_no',
+
+        'sale_date',
         'customer_id',
         'warehouse_id',
-        'biller',
-        'sale_date',
-        'grand_total',
-        'returned_amount',
-        'paid_amount',
-        'due_amount',
+
         'sale_status',
         'payment_status',
         'payment_method',
         'sale_type',
         'delivery_status',
+
+        // Amounts
+        'grand_total',
+        'returned_amount',
+        'paid_amount',
+        'due_amount',
+
+        // Currency
+        'currency',
+        'exchange_rate',
+
+        // Others
         'notes',
-        'created_at',
-        'updated_at',
+        'created_by',
     ];
 
+    /**
+     * ========================
+     * Casts
+     * ========================
+     */
     protected $casts = [
-        'sale_date' => 'date',
-        'grand_total' => 'decimal:2',
-        'returned_amount' => 'decimal:2',
-        'paid_amount' => 'decimal:2',
-        'due_amount' => 'decimal:2',
+        'sale_date'        => 'date',
+
+        'grand_total'      => 'decimal:2',
+        'returned_amount'  => 'decimal:2',
+        'paid_amount'      => 'decimal:2',
+        'due_amount'       => 'decimal:2',
+
+        'exchange_rate'    => 'decimal:4',
     ];
 
-    public function items()
+    /**
+     * ========================
+     * Relationships
+     * ========================
+     */
+
+    // Sale creator (logged-in user)
+    public function creator()
     {
-        return $this->hasMany(SaleItem::class);
+        return $this->belongsTo(User::class, 'created_by');
     }
 
+    // Customer (User table with role = customer)
     public function customer()
     {
-        return $this->belongsTo(Customer::class);
+        return $this->belongsTo(User::class, 'customer_id');
     }
 
     public function warehouse()
     {
         return $this->belongsTo(Warehouse::class);
+    }
+
+    /**
+     * Sale items
+     * Controller compatibility ensured
+     */
+    public function saleItems()
+    {
+        return $this->hasMany(SaleItem::class, 'sale_id');
+    }
+
+    // Alias (optional but safe)
+    public function items()
+    {
+        return $this->hasMany(SaleItem::class, 'sale_id');
+    }
+
+    /**
+     * ========================
+     * Reference Number Generator
+     * ========================
+     * Example: SAL-20251217-0001
+     */
+    public static function generateReferenceNo()
+    {
+        $date = now()->format('Ymd');
+
+        $lastSale = self::whereDate('created_at', today())
+            ->orderBy('id', 'desc')
+            ->first();
+
+        $number = $lastSale
+            ? intval(substr($lastSale->reference_no, -4)) + 1
+            : 1;
+
+        return 'SAL-' . $date . '-' . str_pad($number, 4, '0', STR_PAD_LEFT);
     }
 }

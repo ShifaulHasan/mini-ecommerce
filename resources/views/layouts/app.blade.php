@@ -112,7 +112,7 @@
         </a>
         <div class="collapse" id="saleMenu">
             <a class="nav-link text-white" href="{{ route('sales.index') }}">Sale List</a>
-            <a class="nav-link text-white-50 ms-4" href="{{ route('sales.create') }}">Add Sale</a>
+            <a class="nav-link text-white" href="{{ route('sales.create') }}">Add Sale</a>
             <a href="{{ route('pos.index') }}" class="nav-link">
     <i class="bi bi-shop"></i> POS
 </a>
@@ -124,7 +124,7 @@
             <i class="bi bi-chevron-down float-end"></i>
         </a>
         <div class="collapse" id="returnMenu">
-            <a class="nav-link text-white-50 ms-4" href="{{ route('sale-returns.index') }}">Sale Return</a>
+            <a class="nav-link text-white" href="{{ route('sale-returns.index') }}">Sale Return</a>
         </div>
 
         <!-- Accounting -->
@@ -140,6 +140,25 @@
             <a class="nav-link text-white-50 ms-4" href="{{ route('accounting.statement') }}">Account Statement</a>
         </div>
 
+
+      <!-- People -->
+<!-- People -->
+<a class="nav-link text-white" data-bs-toggle="collapse" href="#peopleMenu">
+    <i class="bi bi-person-lines-fill"></i> People
+    <i class="bi bi-chevron-down float-end"></i>
+</a>
+<div class="collapse" id="peopleMenu">
+    <a class="nav-link text-white-50 ms-4" href="{{ route('users.index') }}">User List</a>
+    <a class="nav-link text-white-50 ms-4" href="{{ route('users.create') }}">Add User</a>
+    <!-- <a class="nav-link text-white-50 ms-4" href="{{ route('customers.index') }}">Customer List</a>
+    <a class="nav-link text-white-50 ms-4" href="{{ route('customers.create') }}">Add Customer</a>
+    <a class="nav-link text-white-50 ms-4" href="{{ route('billers.index') }}">Biller List</a>
+    <a class="nav-link text-white-50 ms-4" href="{{ route('billers.create') }}">Add Biller</a>
+    <a class="nav-link text-white-50 ms-4" href="{{ route('suppliers.index') }}">Supplier List</a>
+    <a class="nav-link text-white-50 ms-4" href="{{ route('suppliers.create') }}">Add Supplier</a> -->
+</div>
+
+
         <!-- HRM -->
         <a class="nav-link text-white" data-bs-toggle="collapse" href="#hrmMenu">
             <i class="bi bi-people"></i> HRM
@@ -152,19 +171,7 @@
             <a class="nav-link text-white-50 ms-4" href="{{ route('payrolls.index') }}">Payroll</a>
         </div>
 
-        <!-- People -->
-        <a class="nav-link text-white" data-bs-toggle="collapse" href="#peopleMenu">
-            <i class="bi bi-person-lines-fill"></i> People
-            <i class="bi bi-chevron-down float-end"></i>
-        </a>
-        <div class="collapse" id="peopleMenu">
-            <a class="nav-link text-white-50 ms-4" href="{{ route('users.index') }}">User List</a>
-            <a class="nav-link text-white-50 ms-4" href="{{ route('users.create') }}">Add User</a>
-            <a class="nav-link text-white-50 ms-4" href="{{ route('customers.index') }}">Customer List</a>
-            <a class="nav-link text-white-50 ms-4" href="{{ route('customers.create') }}">Add Customer</a>
-            <a class="nav-link text-white-50 ms-4" href="{{ route('suppliers.index') }}">Supplier List</a>
-            <a class="nav-link text-white-50 ms-4" href="{{ route('suppliers.create') }}">Add Supplier</a>
-        </div>
+       
 
         <!-- Reports -->
         <a class="nav-link text-white" data-bs-toggle="collapse" href="#reportsMenu">

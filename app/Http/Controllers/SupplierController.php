@@ -7,9 +7,30 @@ use Illuminate\Http\Request;
 
 class SupplierController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $suppliers = Supplier::withCount('purchases')->paginate(15);
+        $query = Supplier::query();
+
+        // Search
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%")
+                  ->orWhere('phone', 'like', "%{$search}%")
+                  ->orWhere('company', 'like', "%{$search}%");
+            });
+        }
+
+        // Status filter
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        // Pagination
+        $perPage = $request->get('per_page', 10);
+        $suppliers = $query->latest()->paginate($perPage);
+
         return view('suppliers.index', compact('suppliers'));
     }
 
@@ -20,15 +41,28 @@ class SupplierController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
-            'name' => 'required|max:255',
-            'email' => 'nullable|email|unique:suppliers',
-            'phone' => 'nullable|max:50',
-            'address' => 'nullable'
+        $validated = $request->validate([
+            'name'        => 'required|string|max:255',
+            'email'       => 'nullable|email|unique:suppliers,email',
+            'phone'       => 'nullable|string|max:20',
+            'address'     => 'nullable|string',
+            'city'        => 'nullable|string|max:100',
+            'country'     => 'nullable|string|max:100',
+            'postal_code' => 'nullable|string|max:20',
+            'company'     => 'nullable|string|max:255',
+            'vat_number'  => 'nullable|string|max:50',
+            'status'      => 'required|in:active,inactive',
         ]);
 
-        Supplier::create($request->all());
-        return redirect()->route('suppliers.index')->with('success', 'Supplier created successfully!');
+        Supplier::create($validated);
+
+        return redirect()->route('suppliers.index')
+            ->with('success', 'Supplier created successfully!');
+    }
+
+    public function show(Supplier $supplier)
+    {
+        return view('suppliers.show', compact('supplier'));
     }
 
     public function edit(Supplier $supplier)
@@ -38,20 +72,30 @@ class SupplierController extends Controller
 
     public function update(Request $request, Supplier $supplier)
     {
-        $request->validate([
-            'name' => 'required|max:255',
-            'email' => 'nullable|email|unique:suppliers,email,'.$supplier->id,
-            'phone' => 'nullable|max:50',
-            'address' => 'nullable'
+        $validated = $request->validate([
+            'name'        => 'required|string|max:255',
+            'email'       => 'nullable|email|unique:suppliers,email,' . $supplier->id,
+            'phone'       => 'nullable|string|max:20',
+            'address'     => 'nullable|string',
+            'city'        => 'nullable|string|max:100',
+            'country'     => 'nullable|string|max:100',
+            'postal_code' => 'nullable|string|max:20',
+            'company'     => 'nullable|string|max:255',
+            'vat_number'  => 'nullable|string|max:50',
+            'status'      => 'required|in:active,inactive',
         ]);
 
-        $supplier->update($request->all());
-        return redirect()->route('suppliers.index')->with('success', 'Supplier updated successfully!');
+        $supplier->update($validated);
+
+        return redirect()->route('suppliers.index')
+            ->with('success', 'Supplier updated successfully!');
     }
 
     public function destroy(Supplier $supplier)
     {
         $supplier->delete();
-        return redirect()->route('suppliers.index')->with('success', 'Supplier deleted successfully!');
+
+        return redirect()->route('suppliers.index')
+            ->with('success', 'Supplier deleted successfully!');
     }
 }

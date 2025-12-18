@@ -91,7 +91,7 @@
                     <div class="col-md-6">
                         <label class="form-label">Sale Price <span class="text-danger">*</span></label>
                         <div class="input-group">
-                            <span class="input-group-text">$</span>
+                            <span class="input-group-text">৳ </span>
                             <input type="number" name="price" class="form-control @error('price') is-invalid @enderror" 
                                    step="0.01" value="{{ old('price', $product->price) }}" required>
                         </div>
@@ -104,7 +104,7 @@
                     <div class="col-md-6">
                         <label class="form-label">Cost (Buy Price) <span class="text-danger">*</span></label>
                         <div class="input-group">
-                            <span class="input-group-text">$</span>
+                            <span class="input-group-text">৳ </span>
                             <input type="number" name="cost_price" class="form-control @error('cost_price') is-invalid @enderror" 
                                    step="0.01" value="{{ old('cost_price', $product->cost_price) }}" required>
                         </div>

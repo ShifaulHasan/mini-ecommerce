@@ -27,6 +27,7 @@ use App\Http\Controllers\UserManagementController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\AdjustmentController;
+use App\Http\Controllers\UserController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -78,10 +79,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/cart/checkout', [CartController::class, 'checkout'])->name('cart.checkout');
 
     // Sales
+ // Sales Routes
     Route::resource('sales', SaleController::class);
-    Route::get('/sales/get-warehouse-products', [SaleController::class, 'getWarehouseProducts'])
-         ->name('sales.get-warehouse-products');
-
+    Route::get('/sales/get-warehouse-products', [SaleController::class, 'getWarehouseProducts'])->name('sales.getWarehouseProducts');
     // POS Routes
 
 // POS Routes
@@ -126,16 +126,41 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/account-statement', [AccountingReportController::class, 'accountStatement'])
          ->name('accounting.statement');
 
+   // User Management Routes
+Route::middleware(['auth'])->group(function () {
+    // User Management Routes - PUT THESE FIRST
+    Route::get('/users', [UserController::class, 'index'])->name('users.index');
+    Route::get('/users/create', [UserController::class, 'create'])->name('users.create');
+    Route::post('/users', [UserController::class, 'store'])->name('users.store');
+    Route::post('/users/bulk-delete', [UserController::class, 'bulkDelete'])->name('users.bulk-delete');
+    Route::get('/users/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
+    Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
+    Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
+    Route::get('/users/{user}', [UserController::class, 'show'])->name('users.show');
+    
+     // Customer Routes
+    Route::resource('customers', CustomerController::class);
+    
+    // Biller Routes
+    Route::resource('billers', BillerController::class);
+    
+    // Supplier Routes
+    Route::resource('suppliers', SupplierController::class);
+    
+    // ... your other routes
+});
+
+
     // HRM
     Route::resource('departments', DepartmentController::class);
     Route::resource('employees', EmployeeController::class);
     Route::resource('attendances', AttendanceController::class);
     Route::resource('payrolls', PayrollController::class);
 
-    // Users, Customers, Suppliers
-    Route::resource('users', UserManagementController::class);
-    Route::resource('customers', CustomerController::class);
-    Route::resource('suppliers', SupplierController::class);
+    // // Users, Customers, Suppliers
+    // Route::resource('users', UserManagementController::class);
+    // Route::resource('customers', CustomerController::class);
+    // Route::resource('suppliers', SupplierController::class);
 
     // Reports
     Route::get('/reports/products', [ReportController::class, 'productReport'])->name('reports.products');

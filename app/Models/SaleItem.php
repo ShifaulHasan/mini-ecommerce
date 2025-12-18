@@ -12,8 +12,6 @@ class SaleItem extends Model
         'quantity',
         'price',
         'subtotal',
-        'created_at',
-        'updated_at',
     ];
 
     protected $casts = [
@@ -22,13 +20,15 @@ class SaleItem extends Model
         'subtotal' => 'decimal:2',
     ];
 
+    // Sale relationship
     public function sale()
     {
-        return $this->belongsTo(Sale::class);
+        return $this->belongsTo(Sale::class, 'sale_id');
     }
 
+    // Product relationship
     public function product()
     {
-        return $this->belongsTo(Product::class);
+        return $this->belongsTo(Product::class, 'product_id');
     }
 }

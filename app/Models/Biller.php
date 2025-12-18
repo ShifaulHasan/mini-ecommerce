@@ -5,7 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Supplier extends Model
+class Biller extends Model
 {
     use HasFactory;
 
@@ -21,9 +21,4 @@ class Supplier extends Model
         'vat_number',
         'status',
     ];
-
-    public function purchases()
-    {
-        return $this->hasMany(Purchase::class);
-    }
 }
