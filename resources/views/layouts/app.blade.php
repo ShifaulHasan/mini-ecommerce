@@ -135,9 +135,9 @@
         <div class="collapse" id="accountingMenu">
             <a class="nav-link text-white-50 ms-4" href="{{ route('accounts.index') }}">Account List</a>
             <a class="nav-link text-white-50 ms-4" href="{{ route('accounts.create') }}">Add Account</a>
-            <a class="nav-link text-white-50 ms-4" href="{{ route('money-transfers.index') }}">Money Transfer</a>
+            <!-- <a class="nav-link text-white-50 ms-4" href="{{ route('money-transfers.index') }}">Money Transfer</a>
             <a class="nav-link text-white-50 ms-4" href="{{ route('accounting.balance-sheet') }}">Balance Sheet</a>
-            <a class="nav-link text-white-50 ms-4" href="{{ route('accounting.statement') }}">Account Statement</a>
+            <a class="nav-link text-white-50 ms-4" href="{{ route('accounting.statement') }}">Account Statement</a> -->
         </div>
 
 

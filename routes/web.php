@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 
+
 // Controllers
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\DashboardController;
@@ -28,6 +29,7 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\AdjustmentController;
 use App\Http\Controllers\UserController;
+
 
 Route::get('/', function () {
     return view('welcome');
@@ -117,14 +119,29 @@ Route::middleware(['auth'])->group(function () {
          ->name('sale-returns.get-items');
     Route::resource('sale-returns', SaleReturnController::class);
 
-    // Accounting
-    Route::resource('accounts', AccountController::class);
-    Route::resource('money-transfers', MoneyTransferController::class);
+    
 
-    Route::get('/balance-sheet', [AccountingReportController::class, 'balanceSheet'])
-         ->name('accounting.balance-sheet');
-    Route::get('/account-statement', [AccountingReportController::class, 'accountStatement'])
-         ->name('accounting.statement');
+    // Account Management Routes
+Route::resource('accounts', AccountController::class);
+
+// Additional custom routes for accounts (must be before resource routes to avoid conflicts)
+Route::post('accounts/{account}/toggle-default', [AccountController::class, 'toggleDefault'])->name('accounts.toggle-default');
+Route::post('accounts/bulk-delete', [AccountController::class, 'bulkDelete'])->name('accounts.bulk-delete');
+Route::get('accounts/export/csv', [AccountController::class, 'exportCSV'])->name('accounts.export.csv');
+//account routes
+Route::patch('/accounts/{account}/toggle-default', [AccountController::class, 'toggleDefault'])
+    ->name('accounts.toggle-default');
+
+// Money Transfer Routes
+Route::resource('money-transfers', MoneyTransferController::class);
+
+// Accounting Reports
+Route::get('/balance-sheet', [AccountingReportController::class, 'balanceSheet'])
+     ->name('accounting.balance-sheet');
+Route::get('/account-statement', [AccountingReportController::class, 'accountStatement'])
+     ->name('accounting.statement');
+
+
 
    // User Management Routes
 Route::middleware(['auth'])->group(function () {
