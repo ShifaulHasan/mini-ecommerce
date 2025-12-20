@@ -28,36 +28,36 @@ class Account extends Model
      * Cast attributes
      */
     protected $casts = [
-        'initial_balance'  => 'decimal:2',
-        'current_balance'  => 'decimal:2',
-        'is_default'       => 'boolean',
+        'initial_balance' => 'decimal:2',
+        'current_balance' => 'decimal:2',
+        'is_default'      => 'boolean',
     ];
 
     /**
-     * Boot method for model events
+     * Boot model events
      */
     protected static function boot()
     {
         parent::boot();
 
-        // When creating a new account
+        // On create
         static::creating(function ($account) {
 
-            // Generate account number if missing
+            // Auto-generate account number
             if (empty($account->account_no)) {
                 $account->account_no = self::generateAccountNumber();
             }
 
-            // Set current balance equal to initial balance
-            if (empty($account->current_balance)) {
+            // Set current balance initially
+            if (is_null($account->current_balance)) {
                 $account->current_balance = $account->initial_balance ?? 0;
             }
         });
 
-        // When saving (create or update)
+        // On save (create/update)
         static::saving(function ($account) {
 
-            // Ensure only one default account exists
+            // Ensure only one default account
             if ($account->is_default) {
                 self::where('id', '!=', $account->id)
                     ->where('is_default', true)
@@ -67,24 +67,83 @@ class Account extends Model
     }
 
     /**
-     * Generate sequential account number
+     * Generate sequential account number (ACC-000001)
      */
     public static function generateAccountNumber()
     {
-        $lastAccount = self::orderBy('id', 'desc')->first();
+        $lastAccount = self::orderByDesc('id')->first();
 
         if (!$lastAccount || !str_starts_with($lastAccount->account_no, 'ACC-')) {
             return 'ACC-000001';
         }
 
         $lastNumber = (int) substr($lastAccount->account_no, 4);
-        $newNumber  = $lastNumber + 1;
 
-        return 'ACC-' . str_pad($newNumber, 6, '0', STR_PAD_LEFT);
+        return 'ACC-' . str_pad($lastNumber + 1, 6, '0', STR_PAD_LEFT);
     }
 
     /**
-     * Scope: Active accounts
+     * =========================
+     * Relationships
+     * =========================
+     */
+
+    /**
+     * Account has many transactions
+     */
+    public function transactions()
+    {
+        return $this->hasMany(Transaction::class);
+    }
+
+    /**
+     * =========================
+     * Accessors & Helpers
+     * =========================
+     */
+
+    /**
+     * Calculate current balance dynamically
+     */
+    public function getCalculatedBalanceAttribute()
+    {
+        $credits = $this->transactions()
+            ->where('type', 'credit')
+            ->sum('amount');
+
+        $debits = $this->transactions()
+            ->where('type', 'debit')
+            ->sum('amount');
+
+        return ($this->initial_balance ?? 0) + $credits - $debits;
+    }
+
+    /**
+     * Get balance up to a specific date
+     */
+    public function getBalanceOnDate($date)
+    {
+        $credits = $this->transactions()
+            ->where('type', 'credit')
+            ->whereDate('date', '<=', $date)
+            ->sum('amount');
+
+        $debits = $this->transactions()
+            ->where('type', 'debit')
+            ->whereDate('date', '<=', $date)
+            ->sum('amount');
+
+        return ($this->initial_balance ?? 0) + $credits - $debits;
+    }
+
+    /**
+     * =========================
+     * Scopes
+     * =========================
+     */
+
+    /**
+     * Active accounts only
      */
     public function scopeActive($query)
     {
@@ -92,7 +151,7 @@ class Account extends Model
     }
 
     /**
-     * Scope: Default account
+     * Default account
      */
     public function scopeDefault($query)
     {

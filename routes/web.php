@@ -124,7 +124,7 @@ Route::middleware(['auth'])->group(function () {
     // Account Management Routes
 Route::resource('accounts', AccountController::class);
 
-// Additional custom routes for accounts (must be before resource routes to avoid conflicts)
+// Additional custom routes for accounts 
 Route::post('accounts/{account}/toggle-default', [AccountController::class, 'toggleDefault'])->name('accounts.toggle-default');
 Route::post('accounts/bulk-delete', [AccountController::class, 'bulkDelete'])->name('accounts.bulk-delete');
 Route::get('accounts/export/csv', [AccountController::class, 'exportCSV'])->name('accounts.export.csv');
@@ -164,7 +164,7 @@ Route::middleware(['auth'])->group(function () {
     // Supplier Routes
     Route::resource('suppliers', SupplierController::class);
     
-    // ... your other routes
+    // other routes
 });
 
 
