@@ -35,6 +35,7 @@ class Purchase extends Model
         'due_amount',
         'payment_status',
         'payment_method',
+        'account_id', // ✅ linked account
 
         // Currency
         'currency',
@@ -72,26 +73,34 @@ class Purchase extends Model
      * ========================
      */
 
-    // Purchase creator (logged-in user)
+    // Purchase creator
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');
     }
 
-    // Supplier (User table with role = supplier)
+    // Supplier
     public function supplier()
     {
         return $this->belongsTo(User::class, 'supplier_id');
     }
 
+    // Warehouse
     public function warehouse()
     {
         return $this->belongsTo(Warehouse::class);
     }
 
+    // Purchase items
     public function items()
     {
         return $this->hasMany(PurchaseItem::class);
+    }
+
+    // ✅ Account used for payment
+    public function account()
+    {
+        return $this->belongsTo(Account::class, 'account_id');
     }
 
     /**
@@ -105,7 +114,7 @@ class Purchase extends Model
         $date = now()->format('Ymd');
 
         $lastPurchase = self::whereDate('created_at', today())
-            ->orderBy('id', 'desc')
+            ->orderByDesc('id')
             ->first();
 
         $number = $lastPurchase

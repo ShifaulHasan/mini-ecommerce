@@ -3,11 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\Account;
-use App\Models\Transaction;
+use App\Models\AccountTransaction; // 🔥 CHANGED from Transaction to AccountTransaction
 use Illuminate\Http\Request;
 use Carbon\Carbon;
-use PDF; // If using PDF export
-use Maatwebsite\Excel\Facades\Excel; // If using Excel export
+use PDF;
+use Maatwebsite\Excel\Facades\Excel;
 
 class AccountingReportController extends Controller
 {
@@ -27,12 +27,12 @@ class AccountingReportController extends Controller
         // Get selected account
         $selectedAccount = Account::findOrFail($request->account_id);
 
-        // Build query for transactions
-        $query = Transaction::where('account_id', $request->account_id);
+        // 🔥 FIXED: Use AccountTransaction instead of Transaction
+        $query = AccountTransaction::where('account_id', $request->account_id);
 
         // Apply type filter
         if ($request->has('type') && $request->type != 'all') {
-            $query->where('type', $request->type);
+            $query->where('transaction_type', $request->type); // 🔥 FIXED: Changed 'type' to 'transaction_type'
         }
 
         // Handle date range based on quick_range or custom dates
@@ -55,27 +55,27 @@ class AccountingReportController extends Controller
 
         // Apply date filters to query
         if ($startDate) {
-            $query->whereDate('date', '>=', $startDate);
+            $query->whereDate('transaction_date', '>=', $startDate); // 🔥 FIXED: Changed 'date' to 'transaction_date'
         }
         if ($endDate) {
-            $query->whereDate('date', '<=', $endDate);
+            $query->whereDate('transaction_date', '<=', $endDate); // 🔥 FIXED: Changed 'date' to 'transaction_date'
         }
 
         // Get transactions ordered by date
-        $transactions = $query->orderBy('date', 'asc')
+        $transactions = $query->orderBy('transaction_date', 'asc') // 🔥 FIXED
                              ->orderBy('created_at', 'asc')
                              ->get();
 
         // Calculate opening balance (all transactions before start date)
-        $openingBalance = $selectedAccount->initial_balance;
+        $openingBalance = $selectedAccount->initial_balance ?? 0;
         
         if ($startDate) {
-            $previousTransactions = Transaction::where('account_id', $request->account_id)
-                ->whereDate('date', '<', $startDate)
+            $previousTransactions = AccountTransaction::where('account_id', $request->account_id)
+                ->whereDate('transaction_date', '<', $startDate) // 🔥 FIXED
                 ->get();
             
             foreach ($previousTransactions as $trans) {
-                if ($trans->type == 'credit') {
+                if ($trans->transaction_type == 'credit') { // 🔥 FIXED
                     $openingBalance += $trans->amount;
                 } else {
                     $openingBalance -= $trans->amount;
@@ -84,8 +84,8 @@ class AccountingReportController extends Controller
         }
 
         // Calculate totals
-        $totalDebit = $transactions->where('type', 'debit')->sum('amount');
-        $totalCredit = $transactions->where('type', 'credit')->sum('amount');
+        $totalDebit = $transactions->where('transaction_type', 'debit')->sum('amount'); // 🔥 FIXED
+        $totalCredit = $transactions->where('transaction_type', 'credit')->sum('amount'); // 🔥 FIXED
 
         // Handle export
         if ($request->has('export')) {
@@ -217,13 +217,8 @@ class AccountingReportController extends Controller
      */
     private function exportExcel($data)
     {
-        // Using Laravel Excel
         $filename = 'account-statement-' . $data['selectedAccount']->account_no . '-' . date('Y-m-d') . '.xlsx';
         
-        // You would create an export class for this
-        // return Excel::download(new StatementExport($data), $filename);
-        
-        // For now, simple CSV export
         return $this->exportCSV($data);
     }
 
@@ -249,7 +244,7 @@ class AccountingReportController extends Controller
             if ($data['startDate'] && $data['endDate']) {
                 fputcsv($file, ['Period', $data['startDate'] . ' to ' . $data['endDate']]);
             }
-            fputcsv($file, []); // Empty line
+            fputcsv($file, []);
             
             // Headers
             fputcsv($file, ['Date', 'Description', 'Reference', 'Debit', 'Credit', 'Balance']);
@@ -260,7 +255,7 @@ class AccountingReportController extends Controller
             
             // Transactions
             foreach ($data['transactions'] as $transaction) {
-                if ($transaction->type == 'debit') {
+                if ($transaction->transaction_type == 'debit') {
                     $runningBalance -= $transaction->amount;
                     $debit = number_format($transaction->amount, 2);
                     $credit = '-';
@@ -271,9 +266,9 @@ class AccountingReportController extends Controller
                 }
                 
                 fputcsv($file, [
-                    date('d M Y', strtotime($transaction->date)),
+                    date('d M Y', strtotime($transaction->transaction_date)),
                     $transaction->description,
-                    $transaction->reference ?? '-',
+                    $transaction->reference_type . '-' . $transaction->reference_id ?? '-',
                     $debit,
                     $credit,
                     number_format($runningBalance, 2)
@@ -299,7 +294,6 @@ class AccountingReportController extends Controller
      */
     public function balanceSheet(Request $request)
     {
-        // Implement balance sheet logic
         return view('accounting.balance-sheet');
     }
 }

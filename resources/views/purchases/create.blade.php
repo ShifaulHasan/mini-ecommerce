@@ -235,10 +235,11 @@
                         <div class="col-md-6">
                             <label class="form-label fw-bold">Currency</label>
                             <select name="currency" class="form-select">
+                                 <option value="BDT" selected>BDT - Bangladeshi Taka</option>
                                 <option value="USD">USD - US Dollar</option>
-                                <option value="BDT" selected>BDT - Bangladeshi Taka</option>
-                                <option value="EUR">EUR - Euro</option>
-                                <option value="GBP">GBP - British Pound</option>
+                               
+                                <!-- <option value="EUR">EUR - Euro</option>
+                                <option value="GBP">GBP - British Pound</option> -->
                             </select>
                         </div>
                         <div class="col-md-6">
@@ -329,23 +330,23 @@
                     </div>
                     <div class="calc-row">
                         <span>Total:</span>
-                        <strong id="displaySubtotal">$0.00</strong>
+                        <strong id="displaySubtotal">৳0.00</strong>
                     </div>
                     <div class="calc-row">
                         <span>Order Tax:</span>
-                        <strong id="displayOrderTax">$0.00</strong>
+                        <strong id="displayOrderTax">৳0.00</strong>
                     </div>
                     <div class="calc-row">
                         <span>Discount:</span>
-                        <strong id="displayOrderDiscount">$0.00</strong>
+                        <strong id="displayOrderDiscount">৳0.00</strong>
                     </div>
                     <div class="calc-row">
                         <span>Shipping:</span>
-                        <strong id="displayShipping">$0.00</strong>
+                        <strong id="displayShipping">৳0.00</strong>
                     </div>
                     <div class="calc-row grand-total">
                         <span>Grand Total:</span>
-                        <strong id="displayGrandTotal">$0.00</strong>
+                        <strong id="displayGrandTotal">৳0.00</strong>
                     </div>
 
                     <button type="button" class="btn btn-submit" onclick="showPaymentModal()">
@@ -369,6 +370,20 @@
                 <div class="modal-body">
                     <div class="row">
                         <div class="col-md-7">
+                            <!-- 🔥 NEW: Account Selection -->
+    <h6 class="mb-3 fw-bold">Select Account</h6>
+    <div class="mb-4">
+        <select id="accountSelect" class="form-select form-select-lg" required>
+            <option value="">-- Select Account --</option>
+            @foreach($accounts as $account)
+            <option value="{{ $account->id }}" 
+                    {{ $account->is_default ? 'selected' : '' }}>
+                {{ $account->name }} - {{ $account->account_no }} 
+                (Balance: ৳{{ number_format($account->current_balance, 2) }})
+            </option>
+            @endforeach
+        </select>
+    </div>
                             <h6 class="mb-3 fw-bold">Select Payment Method</h6>
                             
                             <div class="payment-method" onclick="selectPayment('cash')">
@@ -401,7 +416,7 @@
                                 </div>
                             </div>
 
-                            <div class="payment-method" onclick="selectPayment('bkash')">
+                            <!-- <div class="payment-method" onclick="selectPayment('bkash')">
                                 <div class="d-flex align-items-center">
                                     <input type="radio" name="payment_method" value="bkash" id="pay_bkash">
                                     <label for="pay_bkash" class="ms-3 mb-0 flex-grow-1 cursor-pointer">
@@ -430,7 +445,7 @@
                                     </label>
                                 </div>
                             </div>
-                        </div>
+                        </div> -->
 
                         <div class="col-md-5">
                             <div class="bg-light p-3 rounded">
@@ -749,7 +764,14 @@ function calculateChange() {
 }
 
 function completePurchase(event) {
-    if (event) event.preventDefault(); // Prevent default form submission
+    if (event) event.preventDefault();
+    
+    // 🔥 NEW: Validate account selection
+    const accountId = parseInt(document.getElementById('accountSelect').value);
+    if (!accountId) {
+        alert('Please select an account!');
+        return;
+    }
     
     const paymentMethod = document.querySelector('input[name="payment_method"]:checked');
     if (!paymentMethod) {
@@ -777,7 +799,7 @@ function completePurchase(event) {
     // Get grand total
     const grandTotalEl = document.getElementById('displayGrandTotal');
     const grandTotalText = grandTotalEl ? grandTotalEl.textContent : '$0.00';
-    const grandTotal = parseFloat(grandTotalText.replace('$', '').replace(/,/g, ''));
+    const grandTotal = parseFloat(grandTotalText.replace('$', '').replace('৳', '').replace(/,/g, ''));
     
     // Calculate due amount
     const dueAmount = grandTotal - amountPaying;
@@ -807,13 +829,13 @@ function completePurchase(event) {
     
     // Add products data
     orderItems.forEach((item, index) => {
-        formData.append(`products[${index}][product_id]`, item.productId);
-        formData.append(`products[${index}][quantity]`, item.quantity);
-        formData.append(`products[${index}][batch_id]`, item.batchNo || '');
-        formData.append(`products[${index}][expiry_date]`, item.expiryDate || '');
-        formData.append(`products[${index}][cost_price]`, item.unitCost);
-        formData.append(`products[${index}][discount]`, item.discount);
-        formData.append(`products[${index}][tax]`, item.tax);
+        formData.append(`items[${index}][product_id]`, item.productId);
+        formData.append(`items[${index}][quantity]`, item.quantity);
+        formData.append(`items[${index}][batch_id]`, item.batchNo || '');
+        formData.append(`items[${index}][expiry_date]`, item.expiryDate || '');
+        formData.append(`items[${index}][cost_price]`, item.unitCost);
+        formData.append(`items[${index}][discount]`, item.discount);
+        formData.append(`items[${index}][tax]`, item.tax);
     });
     
     // Get order-level values
@@ -827,19 +849,27 @@ function completePurchase(event) {
     formData.append('shipping_cost', shippingCostInput ? (shippingCostInput.value || '0') : '0');
     formData.append('grand_total', grandTotal.toFixed(2));
     
-    // Add payment data - CRITICAL FIX
+    // Add payment data
     formData.append('payment_method', paymentMethod.value);
     formData.append('payment_status', paymentStatus);
     formData.append('amount_paid', amountPaying.toFixed(2));
     formData.append('due_amount', dueAmount > 0 ? dueAmount.toFixed(2) : '0');
+    formData.append('account_id', accountId); // 🔥 NEW: Add account_id
+    
+    // Set purchase_status field
+    const purchaseStatusSelect = document.querySelector('select[name="purchase_status"]');
+    if (purchaseStatusSelect) {
+        formData.set('purchase_status', purchaseStatusSelect.value);
+    }
     
     // Log for debugging
-    console.log('Payment Data:', {
+    console.log('Purchase Data:', {
         payment_method: paymentMethod.value,
         payment_status: paymentStatus,
         amount_paid: amountPaying.toFixed(2),
         due_amount: dueAmount > 0 ? dueAmount.toFixed(2) : '0',
         grand_total: grandTotal.toFixed(2),
+        account_id: accountId,
         items_count: orderItems.length
     });
     
@@ -878,15 +908,15 @@ function completePurchase(event) {
             
             let message = '✅ Purchase completed successfully!\n\n' + 
                   'Purchase ID: ' + (data.purchase_id || 'N/A') + '\n' +
-                  'Total: $' + grandTotal.toFixed(2) + '\n' +
-                  'Paid: $' + amountPaying.toFixed(2) + '\n';
+                  'Total: ৳' + grandTotal.toFixed(2) + '\n' +
+                  'Paid: ৳' + amountPaying.toFixed(2) + '\n';
             
             if (dueAmount > 0) {
-                message += 'Due: $' + dueAmount.toFixed(2) + '\n';
+                message += 'Due: ৳' + dueAmount.toFixed(2) + '\n';
             }
             
             message += 'Status: ' + paymentStatus.toUpperCase() + '\n' +
-                      'Stock has been updated.';
+                      'Stock and account balance have been updated.';
             
             alert(message);
             
@@ -902,5 +932,5 @@ function completePurchase(event) {
         btn.innerHTML = originalText;
     });
 }
-</script>
+  </script>
 </x-app-layout>

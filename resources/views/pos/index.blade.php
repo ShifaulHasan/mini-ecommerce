@@ -19,7 +19,7 @@ body { font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:#
 .search-input input { width:100%; padding:12px 45px; border:2px solid #dee2e6; border-radius:10px; font-size:16px; }
 .search-input .search-icon { position:absolute; left:15px; top:50%; transform:translateY(-50%); color:#667eea; font-size:20px; }
 .categories-bar { padding:10px 20px; background:white; border-bottom:1px solid #e9ecef; overflow-x:auto; white-space:nowrap; }
-.category-btn { display:inline-block; padding:8px 20px; margin-right:10px; border:2px solid #e9ecef; border-radius:20px; background:white; color:#495057; cursor:pointer; }
+.category-btn { display:inline-block; padding:8px 20px; margin-right:10px; border:2px solid #e9ecef; border-radius:20px; background:white; color:#495057; cursor:pointer; transition:all .3s; }
 .category-btn:hover, .category-btn.active { background: linear-gradient(135deg,#667eea 0%,#764ba2 100%); color:white; border-color:#667eea; }
 .products-grid { flex:1; overflow-y:auto; padding:20px; display:grid; grid-template-columns: repeat(auto-fill,minmax(180px,1fr)); gap:15px; align-content:start; }
 .product-card { background:white; border:2px solid #e9ecef; border-radius:12px; padding:15px; cursor:pointer; transition:all .3s; text-align:center; min-height:200px; display:flex; flex-direction:column; }
@@ -83,8 +83,8 @@ body { font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:#
             @foreach($products as $product)
             <div class="product-card" data-id="{{ $product->id }}" data-category="{{ $product->category_id ?? '' }}">
                 <div class="product-image">
-                    @if($product->image)
-                        <img src="{{ asset($product->image) }}" style="max-width:100%; max-height:100px; border-radius:8px;">
+                    @if($product->image && file_exists(public_path($product->image)))
+                        <img src="{{ asset($product->image) }}" style="max-width:100%; max-height:100px; border-radius:8px;" onerror="this.parentElement.innerHTML='<i class=\'bi bi-box-seam\'></i>'">
                     @else
                         <i class="bi bi-box-seam"></i>
                     @endif
@@ -102,8 +102,9 @@ body { font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:#
     <div class="cart-panel">
         <div class="cart-header"><h5><i class="bi bi-cart3"></i> Current Sale</h5></div>
         <div class="customer-section">
-            <label>Customer</label>
+            <label class="fw-bold mb-2">Customer</label>
             <select id="customerId" class="form-select">
+                <option value="">Walk-in Customer</option>
                 @foreach($customers as $customer)
                 <option value="{{ $customer->id }}">{{ $customer->name }}</option>
                 @endforeach
@@ -141,6 +142,21 @@ body { font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:#
             <div class="modal-body">
                 <div class="row">
                     <div class="col-md-7">
+                        @if(isset($accounts) && $accounts->count() > 0)
+                        <h6 class="mb-3 fw-bold">Select Account</h6>
+                        <div class="mb-4">
+                            <select id="accountSelect" class="form-select form-select-lg">
+                                <option value="">-- Select Account --</option>
+                                @foreach($accounts as $account)
+                                <option value="{{ $account->id }}" {{ $account->is_default ? 'selected' : '' }}>
+                                    {{ $account->name }} - {{ $account->account_no }} 
+                                    (Balance: ${{ number_format($account->current_balance, 2) }})
+                                </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        @endif
+
                         <h6 class="mb-3 fw-bold">Payment Method</h6>
                         
                         <div class="payment-method active" onclick="selectPayment('cash')">
@@ -227,10 +243,94 @@ body { font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:#
     </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 const CSRF_TOKEN = '{{ csrf_token() }}';
 let cart = [];
 let warehouseId = {{ $mainWarehouse ? $mainWarehouse->id : 'null' }};
+
+/**
+ * 🔥 MISSING FUNCTION: Render cart items and totals
+ */
+function renderCart() {
+    const cartItemsDiv = document.getElementById('cartItems');
+    const checkoutBtn = document.getElementById('checkoutBtn');
+    
+    if (!cart || cart.length === 0) {
+        cartItemsDiv.innerHTML = `
+            <div class="empty-cart">
+                <i class="bi bi-cart-x" style="font-size:48px;"></i>
+                <p class="mt-2">Cart is empty<br>Add products to start</p>
+            </div>
+        `;
+        checkoutBtn.disabled = true;
+        updateSummary(0, 0, 0, 0);
+        return;
+    }
+    
+    checkoutBtn.disabled = false;
+    
+    let html = '';
+    cart.forEach(item => {
+        const itemTotal = item.quantity * item.unit_price - (item.discount || 0);
+        html += `
+            <div class="cart-item">
+                <div class="cart-item-info">
+                    <div class="cart-item-name">${item.product_name}</div>
+                    <div class="cart-item-price">$${item.unit_price.toFixed(2)} each</div>
+                </div>
+                <div class="cart-item-qty">
+                    <button class="qty-btn" onclick="updateQty(${item.product_id}, ${item.quantity - 1})">-</button>
+                    <input type="number" class="qty-input" value="${item.quantity}" min="1" 
+                           onchange="updateQty(${item.product_id}, this.value)">
+                    <button class="qty-btn" onclick="updateQty(${item.product_id}, ${item.quantity + 1})">+</button>
+                </div>
+                <div class="fw-bold" style="min-width:70px; text-align:right;">$${itemTotal.toFixed(2)}</div>
+                <button class="remove-btn" onclick="removeItem(${item.product_id})">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+        `;
+    });
+    
+    cartItemsDiv.innerHTML = html;
+    calculateTotals();
+}
+
+/**
+ * Calculate totals with tax and discount
+ */
+function calculateTotals() {
+    let subtotal = 0;
+    
+    cart.forEach(item => {
+        subtotal += (item.quantity * item.unit_price) - (item.discount || 0);
+    });
+    
+    const taxPercent = parseFloat(document.getElementById('taxPercentage').value) || 0;
+    const discountAmount = parseFloat(document.getElementById('discountAmount').value) || 0;
+    
+    const taxAmount = (subtotal * taxPercent) / 100;
+    const grandTotal = subtotal + taxAmount - discountAmount;
+    
+    updateSummary(cart.length, subtotal, taxAmount, discountAmount, grandTotal);
+}
+
+/**
+ * Update summary display
+ */
+function updateSummary(items, subtotal, tax, discount, grandTotal = null) {
+    document.getElementById('totalItems').textContent = items;
+    document.getElementById('subtotal').textContent = '$' + subtotal.toFixed(2);
+    document.getElementById('taxAmount').textContent = '$' + tax.toFixed(2);
+    document.getElementById('discountDisplay').textContent = '$' + discount.toFixed(2);
+    
+    if (grandTotal === null) {
+        grandTotal = subtotal + tax - discount;
+    }
+    
+    document.getElementById('grandTotal').textContent = '$' + grandTotal.toFixed(2);
+}
 
 /**
  * Fetch current cart from server
@@ -244,7 +344,11 @@ function fetchCart() {
             renderCart();
         }
     })
-    .catch(err => console.error('Fetch cart error:', err));
+    .catch(err => {
+        console.error('Fetch cart error:', err);
+        cart = [];
+        renderCart();
+    });
 }
 
 /**
@@ -255,7 +359,8 @@ function addToCart(product_id) {
         method: 'POST',
         headers: {
             'X-CSRF-TOKEN': CSRF_TOKEN,
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
         }
     })
     .then(res => res.json())
@@ -284,7 +389,8 @@ function updateQty(product_id, quantity) {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': CSRF_TOKEN
+            'X-CSRF-TOKEN': CSRF_TOKEN,
+            'Accept': 'application/json'
         },
         body: JSON.stringify({ product_id, quantity })
     })
@@ -304,10 +410,13 @@ function updateQty(product_id, quantity) {
  * Remove item from cart
  */
 function removeItem(product_id) {
+    if (!confirm('Remove this item from cart?')) return;
+    
     fetch(`{{ url("/pos/remove") }}/${product_id}`, {
         method: 'DELETE',
         headers: {
-            'X-CSRF-TOKEN': CSRF_TOKEN
+            'X-CSRF-TOKEN': CSRF_TOKEN,
+            'Accept': 'application/json'
         }
     })
     .then(res => res.json())
@@ -326,12 +435,6 @@ function removeItem(product_id) {
 function openPaymentModal() {
     if (!cart || cart.length === 0) {
         alert('Cart is empty!');
-        return;
-    }
-
-    const customerId = document.getElementById('customerId').value;
-    if (!customerId) {
-        alert('Please select a customer.');
         return;
     }
 
@@ -383,11 +486,11 @@ function completeSale() {
         return;
     }
 
-    const customerId = parseInt(document.getElementById('customerId').value);
-    if (!customerId) {
-        alert('Please select a customer.');
-        return;
-    }
+    const customerIdSelect = document.getElementById('customerId');
+    const customerId = customerIdSelect.value ? parseInt(customerIdSelect.value) : null;
+
+    const accountSelect = document.getElementById('accountSelect');
+    const accountId = accountSelect ? (accountSelect.value ? parseInt(accountSelect.value) : null) : null;
 
     const paymentMethod = document.querySelector('input[name="payment_method"]:checked');
     if (!paymentMethod) {
@@ -397,6 +500,11 @@ function completeSale() {
 
     const amountPaying = parseFloat(document.getElementById('amountPaying').value) || 0;
     const grandTotal = parseFloat(document.getElementById('modalTotal').textContent.replace('$', ''));
+
+    if (amountPaying <= 0) {
+        alert('Please enter amount paying.');
+        return;
+    }
 
     if (amountPaying < grandTotal) {
         if (!confirm('Amount paid is less than total. Create partial payment?')) {
@@ -410,6 +518,7 @@ function completeSale() {
     const payload = {
         warehouse_id: warehouseId,
         customer_id: customerId,
+        account_id: accountId,
         products: cart.map(item => ({
             product_id: item.product_id,
             quantity: item.quantity,
@@ -422,8 +531,8 @@ function completeSale() {
         discount_amount: discount
     };
 
-    // Disable button
     const btn = event.target;
+    const originalHTML = btn.innerHTML;
     btn.disabled = true;
     btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Processing...';
 
@@ -431,26 +540,31 @@ function completeSale() {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': CSRF_TOKEN
+            'X-CSRF-TOKEN': CSRF_TOKEN,
+            'Accept': 'application/json'
         },
         body: JSON.stringify(payload)
     })
     .then(res => res.json())
     .then(data => {
         btn.disabled = false;
-        btn.innerHTML = '<i class="bi bi-check-circle"></i> Complete Sale';
+        btn.innerHTML = originalHTML;
         
         if (data.success) {
-            alert(`✅ Sale completed!\n\nReference: ${data.reference_no}\nChange: $${data.change.toFixed(2)}`);
+            const changeAmount = data.change || (amountPaying - grandTotal);
+            alert(`✅ Sale completed!\n\nReference: ${data.reference_no || 'N/A'}\nChange: $${changeAmount.toFixed(2)}`);
             
-            // Reset cart
             cart = [];
             renderCart();
             document.getElementById('taxPercentage').value = 0;
             document.getElementById('discountAmount').value = 0;
+            customerIdSelect.value = '';
             
-            // Close modal
-            bootstrap.Modal.getInstance(document.getElementById('paymentModal')).hide();
+            const modalElement = document.getElementById('paymentModal');
+            const modalInstance = bootstrap.Modal.getInstance(modalElement);
+            if (modalInstance) {
+                modalInstance.hide();
+            }
         } else if (data.errors) {
             let msg = 'Validation errors:\n';
             for (const key in data.errors) {
@@ -463,84 +577,54 @@ function completeSale() {
     })
     .catch(err => {
         btn.disabled = false;
-        btn.innerHTML = '<i class="bi bi-check-circle"></i> Complete Sale';
+        btn.innerHTML = originalHTML;
         console.error('Complete sale error:', err);
         alert('❌ Server error occurred');
     });
 }
 
 /**
- * Render cart in HTML
+ * Search products
  */
-function renderCart() {
-    const el = document.getElementById('cartItems');
-    if(!cart || cart.length === 0){
-        el.innerHTML = `<div class="empty-cart">
-            <i class="bi bi-cart-x" style="font-size:48px;"></i>
-            <p class="mt-2">Cart is empty<br>Add products to start</p>
-        </div>`;
-        document.getElementById('checkoutBtn').disabled = true;
-        updateSummary();
-        return;
-    }
-
-    document.getElementById('checkoutBtn').disabled = false;
-
-    el.innerHTML = cart.map(item => `
-        <div class="cart-item">
-            <div class="cart-item-info">
-                <div class="cart-item-name">${item.name}</div>
-                <div class="cart-item-price">$${item.unit_price} × ${item.quantity}</div>
-            </div>
-            <div class="cart-item-qty">
-                <button class="qty-btn" onclick="updateQty(${item.product_id},${item.quantity-1})">-</button>
-                <input class="qty-input" type="number" value="${item.quantity}" onchange="updateQty(${item.product_id},this.value)">
-                <button class="qty-btn" onclick="updateQty(${item.product_id},${item.quantity+1})">+</button>
-                <button class="remove-btn" onclick="removeItem(${item.product_id})"><i class="bi bi-trash"></i></button>
-            </div>
-        </div>
-    `).join('');
-
-    updateSummary();
-}
-
-function updateSummary() {
-    const subtotal = cart.reduce((s,i)=>s+(i.unit_price*i.quantity),0);
-    const tax = parseFloat(document.getElementById('taxPercentage').value) || 0;
-    const discount = parseFloat(document.getElementById('discountAmount').value) || 0;
-    const taxAmount = (subtotal * tax) / 100;
-    const grand = subtotal + taxAmount - discount;
-
-    document.getElementById('totalItems').textContent = cart.length;
-    document.getElementById('subtotal').textContent = '$' + subtotal.toFixed(2);
-    document.getElementById('taxAmount').textContent = '$' + taxAmount.toFixed(2);
-    document.getElementById('discountDisplay').textContent = '$' + discount.toFixed(2);
-    document.getElementById('grandTotal').textContent = '$' + grand.toFixed(2);
-}
-
-// Search products
-document.getElementById('searchProduct').addEventListener('input', function(){
-    const q = this.value.toLowerCase();
-    document.querySelectorAll('.product-card').forEach(card => {
-        card.style.display = card.querySelector('.product-name').textContent.toLowerCase().includes(q) ? 'flex' : 'none';
+document.getElementById('searchProduct').addEventListener('input', function() {
+    const searchTerm = this.value.toLowerCase();
+    const productCards = document.querySelectorAll('.product-card');
+    
+    productCards.forEach(card => {
+        const productName = card.querySelector('.product-name').textContent.toLowerCase();
+        if (productName.includes(searchTerm)) {
+            card.style.display = 'flex';
+        } else {
+            card.style.display = 'none';
+        }
     });
 });
 
-// Category filter
+/**
+ * Category filter
+ */
 document.querySelectorAll('.category-btn').forEach(btn => {
-    btn.addEventListener('click', function(){
+    btn.addEventListener('click', function() {
         document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        const cat = btn.dataset.category;
-        document.querySelectorAll('.product-card').forEach(card => {
-            card.style.display = !cat || card.dataset.category==cat ? 'flex' : 'none';
+        this.classList.add('active');
+        
+        const categoryId = this.dataset.category;
+        const productCards = document.querySelectorAll('.product-card');
+        
+        productCards.forEach(card => {
+            if (!categoryId || card.dataset.category === categoryId) {
+                card.style.display = 'flex';
+            } else {
+                card.style.display = 'none';
+            }
         });
     });
 });
 
-// Initial fetch
-fetchCart();
+// Initial fetch on page load
+document.addEventListener('DOMContentLoaded', function() {
+    fetchCart();
+});
 </script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

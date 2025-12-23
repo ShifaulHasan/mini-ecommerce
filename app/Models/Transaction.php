@@ -10,75 +10,78 @@ class Transaction extends Model
     use HasFactory;
 
     /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
+     * Mass assignable fields
      */
     protected $fillable = [
         'account_id',
+        'sale_id',
         'date',
-        'type', // 'debit' or 'credit'
+        'type',          // credit | debit
         'amount',
         'description',
         'reference',
-        'category',
         'payment_method',
+        'category',
         'created_by',
     ];
 
     /**
-     * The attributes that should be cast.
-     *
-     * @var array<string, string>
+     * Cast attributes
      */
     protected $casts = [
-        'date' => 'date',
+        'date'   => 'date',
         'amount' => 'decimal:2',
     ];
 
     /**
-     * Get the account that owns the transaction.
+     * Relations
      */
+
+    // Transaction belongs to an Account
     public function account()
     {
         return $this->belongsTo(Account::class);
     }
 
-    /**
-     * Get the user who created this transaction.
-     */
+    // Transaction may belong to a Sale
+    public function sale()
+    {
+        return $this->belongsTo(Sale::class);
+    }
+
+    // Transaction created by User
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');
     }
 
     /**
-     * Scope a query to only include debit transactions.
+     * Scopes
      */
-    public function scopeDebit($query)
-    {
-        return $query->where('type', 'debit');
-    }
 
-    /**
-     * Scope a query to only include credit transactions.
-     */
+    // Only credit transactions
     public function scopeCredit($query)
     {
         return $query->where('type', 'credit');
     }
 
-    /**
-     * Scope a query to filter by date range.
-     */
-    public function scopeDateRange($query, $startDate, $endDate)
+    // Only debit transactions
+    public function scopeDebit($query)
+    {
+        return $query->where('type', 'debit');
+    }
+
+    // Filter by date range
+    public function scopeDateRange($query, $startDate = null, $endDate = null)
     {
         if ($startDate) {
             $query->whereDate('date', '>=', $startDate);
         }
+
         if ($endDate) {
             $query->whereDate('date', '<=', $endDate);
         }
+
         return $query;
     }
 }

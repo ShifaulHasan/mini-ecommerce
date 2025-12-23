@@ -426,64 +426,67 @@
                             @endif
 
                             <!-- Transaction Rows -->
-                            @forelse($transactions as $transaction)
-                                @php
-                                    if ($transaction->type == 'credit') {
-                                        $runningBalance += $transaction->amount;
-                                        $moneyIn = $transaction->amount;
-                                        $moneyOut = 0;
-                                        $flowType = 'inflow';
-                                        $flowLabel = 'Money In';
-                                    } else {
-                                        $runningBalance -= $transaction->amount;
-                                        $moneyIn = 0;
-                                        $moneyOut = $transaction->amount;
-                                        $flowType = 'outflow';
-                                        $flowLabel = 'Money Out';
-                                    }
-                                @endphp
-                                <tr>
-                                    <td><strong>{{ date('d M Y', strtotime($transaction->date)) }}</strong></td>
-                                    <td>
-                                        <div class="transaction-desc">
-                                            <strong>{{ $transaction->description }}</strong>
-                                        </div>
-                                        @if($transaction->reference)
-                                            <div class="transaction-ref">Ref: {{ $transaction->reference }}</div>
-                                        @endif
-                                        @if($transaction->category)
-                                            <div class="transaction-ref">Category: {{ $transaction->category }}</div>
-                                        @endif
-                                    </td>
-                                    <td class="col-center">
-                                        <span class="flow-badge {{ $flowType }}">{{ $flowLabel }}</span>
-                                    </td>
-                                    <td class="col-right">
-                                        @if($moneyIn > 0)
-                                            <span class="money-in">+{{ number_format($moneyIn, 2) }}</span>
-                                        @else
-                                            <span style="color: #9ca3af;">-</span>
-                                        @endif
-                                    </td>
-                                    <td class="col-right">
-                                        @if($moneyOut > 0)
-                                            <span class="money-out">-{{ number_format($moneyOut, 2) }}</span>
-                                        @else
-                                            <span style="color: #9ca3af;">-</span>
-                                        @endif
-                                    </td>
-                                    <td class="col-right balance-amount">
-                                        {{ number_format($runningBalance, 2) }}
-                                    </td>
-                                </tr>
-                            @empty
-                                <tr>
-                                    <td colspan="6" class="no-data">
-                                        No transactions found for the selected criteria.<br>
-                                        Please adjust your filters and try again.
-                                    </td>
-                                </tr>
-                            @endforelse
+                            <!-- Transaction Rows Section - Replace this in your blade file -->
+@forelse($transactions as $transaction)
+    @php
+        // 🔥 FIXED: Use transaction_type instead of type
+        if ($transaction->transaction_type == 'credit') {
+            $runningBalance += $transaction->amount;
+            $moneyIn = $transaction->amount;
+            $moneyOut = 0;
+            $flowType = 'inflow';
+            $flowLabel = 'Money In';
+        } else {
+            $runningBalance -= $transaction->amount;
+            $moneyIn = 0;
+            $moneyOut = $transaction->amount;
+            $flowType = 'outflow';
+            $flowLabel = 'Money Out';
+        }
+    @endphp
+    <tr>
+        <!-- 🔥 FIXED: Use transaction_date instead of date -->
+        <td><strong>{{ date('d M Y', strtotime($transaction->transaction_date)) }}</strong></td>
+        <td>
+            <div class="transaction-desc">
+                <strong>{{ $transaction->description }}</strong>
+            </div>
+            <!-- 🔥 FIXED: Show reference_type and reference_id -->
+            @if($transaction->reference_type && $transaction->reference_id)
+                <div class="transaction-ref">
+                    Ref: {{ strtoupper($transaction->reference_type) }}-{{ $transaction->reference_id }}
+                </div>
+            @endif
+        </td>
+        <td class="col-center">
+            <span class="flow-badge {{ $flowType }}">{{ $flowLabel }}</span>
+        </td>
+        <td class="col-right">
+            @if($moneyIn > 0)
+                <span class="money-in">+{{ number_format($moneyIn, 2) }}</span>
+            @else
+                <span style="color: #9ca3af;">-</span>
+            @endif
+        </td>
+        <td class="col-right">
+            @if($moneyOut > 0)
+                <span class="money-out">-{{ number_format($moneyOut, 2) }}</span>
+            @else
+                <span style="color: #9ca3af;">-</span>
+            @endif
+        </td>
+        <td class="col-right balance-amount">
+            {{ number_format($runningBalance, 2) }}
+        </td>
+    </tr>
+@empty
+    <tr>
+        <td colspan="6" class="no-data">
+            No transactions found for the selected criteria.<br>
+            Please adjust your filters and try again.
+        </td>
+    </tr>
+@endforelse
 
                             <!-- Closing Balance Row -->
                             @if($transactions->count() > 0)

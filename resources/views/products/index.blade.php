@@ -54,8 +54,9 @@
                             <td>{{ $product->category->name ?? '-' }}</td>
                             <td>{{ $product->brand->name ?? '-' }}</td>
                             <td>{{ $product->unit->name ?? '-' }}</td>
-                            <td>${{ number_format($product->cost_price, 2) }}</td>
-                            <td><strong>${{ number_format($product->price, 2) }}</strong></td>
+                            <td>৳{{ number_format($product->cost_price, 2) }}</td>
+                           <td><strong>৳{{ number_format($product->price, 2) }}</strong></td>
+
                             <td>
                                 <span class="badge {{ $product->stock > 10 ? 'bg-success' : ($product->stock > 0 ? 'bg-warning' : 'bg-danger') }}">
                                     {{ $product->stock }}

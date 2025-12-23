@@ -271,74 +271,75 @@
                             <th>Name</th>
                             <th>Branch</th>
                             <th>Swift Code</th>
-                            <th>Initial Balance</th>
+                             <th>Current Balance</th>
                             <th>Default</th>
                             <th>Note</th>
                             <th style="width: 100px;">Action</th>
                         </tr>
                     </thead>
                     <tbody id="tableBody">
-                        @forelse($accounts as $account)
-                        <tr class="data-row">
-                            <td><input type="checkbox" class="row-checkbox"></td>
-                            <td>{{ $account->account_no }}</td>
-                            <td>{{ $account->name }}</td>
-                            <td>{{ $account->branch ?? '-' }}</td>
-                            <td>{{ $account->swift_code ?? '-' }}</td>
-                            <td>{{ number_format($account->initial_balance, 2) }}</td>
-                            <td>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" 
-                                           {{ $account->is_default ? 'checked' : '' }}
-                                           onchange="toggleDefault({{ $account->id }}, this.checked)">
-                                    <span class="toggle-slider"></span>
-                                </label>
-                                
-                                <!-- Toggle Form (hidden) -->
-                                <form id="toggle-form-{{ $account->id }}" 
-                                      action="{{ route('accounts.toggle-default', $account->id) }}" 
-                                      method="POST" 
-                                      style="display: none;">
-                                    @csrf
-                                    @method('PATCH')
-                                </form>
-                            </td>
-                            <td>{{ $account->note ?? '' }}</td>
-                            <td>
-                                <div class="action-dropdown">
-                                    <button type="button" class="action-btn" onclick="toggleDropdown(this)">
-                                        action ▼
-                                    </button>
-                                    <div class="dropdown-menu">
-                                        <a href="{{ route('accounts.edit', $account->id) }}" class="dropdown-item">Edit</a>
-                                        <a href="#" onclick="deleteAccount({{ $account->id }})" class="dropdown-item delete">Delete</a>
-                                    </div>
-                                </div>
-                                
-                                <!-- Delete Form (hidden) -->
-                                <form id="delete-form-{{ $account->id }}" 
-                                      action="{{ route('accounts.destroy', $account->id) }}" 
-                                      method="POST" 
-                                      style="display: none;">
-                                    @csrf
-                                    @method('DELETE')
-                                </form>
-                            </td>
-                        </tr>
-                        @empty
-                        <tr>
-                            <td colspan="9" style="text-align: center; padding: 20px;">No accounts found</td>
-                        </tr>
-                        @endforelse
-                        
-                        @if($accounts->count() > 0)
-                        <tr class="total-row">
-                            <td colspan="5"><strong>Total</strong></td>
-                            <td><strong>{{ number_format($totalBalance, 2) }}</strong></td>
-                            <td colspan="3"></td>
-                        </tr>
-                        @endif
-                    </tbody>
+    @forelse($accounts as $account)
+    <tr class="data-row">
+        <td><input type="checkbox" class="row-checkbox"></td>
+        <td>{{ $account->account_no }}</td>
+        <td>{{ $account->name }}</td>
+        <td>{{ $account->branch ?? '-' }}</td>
+        <td>{{ $account->swift_code ?? '-' }}</td>
+        <td>৳{{ number_format($account->current_balance, 2) }}</td> <!-- 🔥 CHANGED from initial_balance -->
+        <td>
+            <label class="toggle-switch">
+                <input type="checkbox" 
+                       {{ $account->is_default ? 'checked' : '' }}
+                       onchange="toggleDefault({{ $account->id }}, this.checked)">
+                <span class="toggle-slider"></span>
+            </label>
+            
+            <!-- Toggle Form (hidden) -->
+            <form id="toggle-form-{{ $account->id }}" 
+                  action="{{ route('accounts.toggle-default', $account->id) }}" 
+                  method="POST" 
+                  style="display: none;">
+                @csrf
+                @method('PATCH')
+            </form>
+        </td>
+        <td>{{ $account->note ?? '' }}</td>
+        <td>
+            <div class="action-dropdown">
+                <button type="button" class="action-btn" onclick="toggleDropdown(this)">
+                    action ▼
+                </button>
+                <div class="dropdown-menu">
+                    <a href="{{ route('accounts.show', $account->id) }}" class="dropdown-item">View</a>
+                    <a href="{{ route('accounts.edit', $account->id) }}" class="dropdown-item">Edit</a>
+                    <a href="#" onclick="deleteAccount({{ $account->id }})" class="dropdown-item delete">Delete</a>
+                </div>
+            </div>
+            
+            <!-- Delete Form (hidden) -->
+            <form id="delete-form-{{ $account->id }}" 
+                  action="{{ route('accounts.destroy', $account->id) }}" 
+                  method="POST" 
+                  style="display: none;">
+                @csrf
+                @method('DELETE')
+            </form>
+        </td>
+    </tr>
+    @empty
+    <tr>
+        <td colspan="9" style="text-align: center; padding: 20px;">No accounts found</td>
+    </tr>
+    @endforelse
+    
+    @if($accounts->count() > 0)
+    <tr class="total-row">
+        <td colspan="5"><strong>Total</strong></td>
+        <td><strong>৳{{ number_format($totalBalance, 2) }}</strong></td>
+        <td colspan="3"></td>
+    </tr>
+    @endif
+</tbody>
                 </table>
 
                 <!-- Pagination -->

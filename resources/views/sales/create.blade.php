@@ -168,57 +168,68 @@
             <div class="col-lg-8">
                 <!-- Sale Information -->
                 <div class="sale-card">
-                    <h5 class="card-title-custom">
-                        <i class="bi bi-info-circle"></i> Sale Information
-                    </h5>
-                    <div class="row g-3">
-                        <div class="col-md-4">
-                            <label class="form-label fw-bold">Date <span class="text-danger">*</span></label>
-                            <input type="date" name="sale_date" class="form-control" value="{{ date('Y-m-d') }}" required>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label fw-bold">Reference No</label>
-                            <input type="text" name="reference_no" class="form-control" value="AUTO" readonly>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label fw-bold">Status</label>
-                            <select name="sale_status" class="form-select">
-                                <option value="completed">Completed</option>
-                                <option value="pending">Pending</option>
-                            </select>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold">Warehouse <span class="text-danger">*</span></label>
-                            <select name="warehouse_id" class="form-select" required>
-                                <option value="">Select Warehouse</option>
-                                @foreach($warehouses as $warehouse)
-                                <option value="{{ $warehouse->id }}">{{ $warehouse->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold">Customer</label>
-                            <select name="customer_id" class="form-select">
-                                <option value="">Walk-in Customer</option>
-                                @foreach($customers as $customer)
-                                <option value="{{ $customer->id }}">{{ $customer->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold">Tax Type</label>
-                            <select name="tax_type" id="taxType" class="form-select">
-                                <option value="exclusive">Exclusive</option>
-                                <option value="inclusive">Inclusive</option>
-                            </select>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold">Attach Document</label>
-                            <input type="file" name="document" class="form-control" accept=".pdf,.jpg,.png,.jpeg">
-                        </div>
-                    </div>
-                </div>
-
+    <h5 class="card-title-custom">
+        <i class="bi bi-info-circle"></i> Sale Information
+    </h5>
+    <div class="row g-3">
+        <div class="col-md-4">
+            <label class="form-label fw-bold">Date <span class="text-danger">*</span></label>
+            <input type="date" name="sale_date" class="form-control" value="{{ date('Y-m-d') }}" required>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label fw-bold">Reference No</label>
+            <input type="text" name="reference_number" class="form-control" value="AUTO" readonly>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label fw-bold">Status</label>
+            <select name="sale_status" id="saleStatus" class="form-select">
+                <option value="completed">Completed</option>
+                <option value="pending">Pending</option>
+            </select>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label fw-bold">Warehouse <span class="text-danger">*</span></label>
+            <select name="warehouse_id" class="form-select" required>
+                <option value="">Select Warehouse</option>
+                @foreach($warehouses as $warehouse)
+                <option value="{{ $warehouse->id }}">{{ $warehouse->name }}</option>
+                @endforeach
+            </select>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label fw-bold">Customer</label>
+            <select name="customer_id" class="form-select">
+                <option value="">Walk-in Customer</option>
+                @foreach($customers as $customer)
+                <option value="{{ $customer->id }}">{{ $customer->name }}</option>
+                @endforeach
+            </select>
+        </div>
+        
+        <!-- 🔥 NEW: Delivery Status Field -->
+        <div class="col-md-6">
+            <label class="form-label fw-bold">Delivery Status</label>
+            <select name="delivery_status" id="deliveryStatus" class="form-select">
+                <option value="pending">Pending</option>
+                <option value="processing">Processing</option>
+                <option value="delivered">Delivered</option>
+                <option value="cancelled">Cancelled</option>
+            </select>
+        </div>
+        
+        <div class="col-md-6">
+            <label class="form-label fw-bold">Tax Type</label>
+            <select name="tax_type" id="taxType" class="form-select">
+                <option value="exclusive">Exclusive</option>
+                <option value="inclusive">Inclusive</option>
+            </select>
+        </div>
+        <div class="col-md-12">
+            <label class="form-label fw-bold">Attach Document</label>
+            <input type="file" name="document" class="form-control" accept=".pdf,.jpg,.png,.jpeg">
+        </div>
+    </div>
+</div>
                 <!-- Product Selection -->
                 <div class="sale-card">
                     <h5 class="card-title-custom">
@@ -343,6 +354,21 @@
                 <div class="modal-body">
                     <div class="row">
                         <div class="col-md-7">
+
+                            <!-- 🔥 NEW: Account Selection -->
+    <h6 class="mb-3 fw-bold">Select Account</h6>
+    <div class="mb-4">
+        <select id="accountSelectSale" class="form-select form-select-lg" required>
+            <option value="">-- Select Account --</option>
+            @foreach($accounts as $account)
+            <option value="{{ $account->id }}" 
+                    {{ $account->is_default ? 'selected' : '' }}>
+                {{ $account->name }} - {{ $account->account_no }} 
+                (Balance: ${{ number_format($account->current_balance, 2) }})
+            </option>
+            @endforeach
+        </select>
+    </div>
                             <h6 class="mb-3 fw-bold">Select Payment Method</h6>
                             
                             <div class="payment-method" onclick="selectPayment('cash')">
@@ -658,17 +684,27 @@ function calculateChange() {
 function completeSale(event) {
     if (event) event.preventDefault();
     
+    if (orderItems.length === 0) {
+        alert('Please add at least one product!');
+        return;
+    }
+
+    // 🔥 NEW: Validate account
+    const accountId = parseInt(document.getElementById('accountSelectSale').value);
+    if (!accountId) {
+        alert('Please select an account!');
+        return;
+    }
+    
     const paymentMethod = document.querySelector('input[name="payment_method"]:checked');
     if (!paymentMethod) {
         alert('Please select a payment method!');
         return;
     }
     
-    const amountPayingInput = document.getElementById('amountPaying');
-    const amountPaying = parseFloat(amountPayingInput ? amountPayingInput.value : 0) || 0;
-    
-    if (amountPaying < 0) {
-        alert('Please enter a valid payment amount!');
+    const warehouseSelect = document.querySelector('select[name="warehouse_id"]');
+    if (!warehouseSelect || !warehouseSelect.value) {
+        alert('Please select a warehouse!');
         return;
     }
     
@@ -679,12 +715,17 @@ function completeSale(event) {
     btn.disabled = true;
     btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Processing...';
     
+    // Calculate totals
     const grandTotalEl = document.getElementById('displayGrandTotal');
     const grandTotalText = grandTotalEl ? grandTotalEl.textContent : '$0.00';
     const grandTotal = parseFloat(grandTotalText.replace('$', '').replace(/,/g, ''));
     
-    const dueAmount = grandTotal - amountPaying;
+    const amountPayingInput = document.getElementById('amountPaying');
+    const amountPaying = parseFloat(amountPayingInput ? amountPayingInput.value : 0) || 0;
     
+    const dueAmount = Math.max(0, grandTotal - amountPaying);
+    
+    // Determine payment status
     const paymentStatusSelect = document.getElementById('paymentStatus');
     let paymentStatus = paymentStatusSelect ? paymentStatusSelect.value : 'pending';
     
@@ -696,45 +737,57 @@ function completeSale(event) {
         paymentStatus = 'pending';
     }
     
-    const form = document.getElementById('saleForm');
-    if (!form) {
-        alert('Form not found!');
-        btn.disabled = false;
-        btn.innerHTML = originalText;
-        return;
-    }
-    
-    const formData = new FormData(form);
-    
-    orderItems.forEach((item, index) => {
-        formData.append(`products[${index}][product_id]`, item.productId);
-        formData.append(`products[${index}][quantity]`, item.quantity);
-        formData.append(`products[${index}][unit_price]`, item.unitPrice);
-        formData.append(`products[${index}][discount]`, item.discount);
-        formData.append(`products[${index}][tax]`, item.tax);
-    });
-    
+    // Get form values
+    const saleDateInput = document.querySelector('input[name="sale_date"]');
+    const customerIdSelect = document.querySelector('select[name="customer_id"]');
+    const saleStatusSelect = document.querySelector('select[name="sale_status"]');
+    const deliveryStatusSelect = document.getElementById('deliveryStatus');
+    const notesTextarea = document.querySelector('textarea[name="notes"]');
     const orderTaxInput = document.getElementById('orderTax');
     const orderDiscountInput = document.getElementById('orderDiscount');
     const shippingCostInput = document.getElementById('shippingCost');
     
-    formData.append('tax_percentage', orderTaxInput ? (orderTaxInput.value || '0') : '0');
-    formData.append('discount_amount', orderDiscountInput ? (orderDiscountInput.value || '0') : '0');
-    formData.append('shipping_cost', shippingCostInput ? (shippingCostInput.value || '0') : '0');
-    formData.append('grand_total', grandTotal.toFixed(2));
+    // Prepare items array
+    const items = orderItems.map(item => ({
+        product_id: item.productId,
+        quantity: item.quantity,
+        unit_price: item.unitPrice,
+        discount: item.discount || 0,
+        tax: item.tax || 0
+    }));
     
-    formData.append('payment_method', paymentMethod.value);
-    formData.append('payment_status', paymentStatus);
-    formData.append('amount_paid', amountPaying.toFixed(2));
-    formData.append('due_amount', dueAmount > 0 ? dueAmount.toFixed(2) : '0');
+    // Prepare data object
+    const data = {
+        sale_date: saleDateInput ? saleDateInput.value : new Date().toISOString().split('T')[0],
+        warehouse_id: warehouseSelect.value,
+        customer_id: customerIdSelect && customerIdSelect.value ? customerIdSelect.value : null,
+        sale_status: saleStatusSelect ? saleStatusSelect.value : 'completed',
+        delivery_status: deliveryStatusSelect ? deliveryStatusSelect.value : 'pending',
+        payment_status: paymentStatus,
+        payment_method: paymentMethod.value,
+        account_id: accountId, // 🔥 NEW
+        grand_total: grandTotal,
+        amount_paid: amountPaying,
+        due_amount: dueAmount,
+        tax_percentage: orderTaxInput ? (parseFloat(orderTaxInput.value) || 0) : 0,
+        discount_amount: orderDiscountInput ? (parseFloat(orderDiscountInput.value) || 0) : 0,
+        shipping_cost: shippingCostInput ? (parseFloat(shippingCostInput.value) || 0) : 0,
+        notes: notesTextarea ? notesTextarea.value : '',
+        items: items
+    };
+    
+    console.log('=== SENDING DATA ===');
+    console.log(JSON.stringify(data, null, 2));
+    console.log('=== END DATA ===');
     
     const csrfToken = document.querySelector('meta[name="csrf-token"]');
     const token = csrfToken ? csrfToken.getAttribute('content') : '';
     
     fetch('{{ route("sales.store") }}', {
         method: 'POST',
-        body: formData,
+        body: JSON.stringify(data),
         headers: {
+            'Content-Type': 'application/json',
             'X-CSRF-TOKEN': token,
             'Accept': 'application/json',
             'X-Requested-With': 'XMLHttpRequest'
@@ -744,7 +797,10 @@ function completeSale(event) {
     .then(response => {
         if (!response.ok) {
             return response.json().then(data => {
+                console.error('Server response:', data);
                 throw new Error(data.message || 'Server error occurred');
+            }).catch(err => {
+                throw new Error('Server error: ' + response.statusText);
             });
         }
         return response.json();
@@ -757,8 +813,8 @@ function completeSale(event) {
                 if (modal) modal.hide();
             }
             
-            alert('✅ Sale completed successfully!');
-            window.location.href = '{{ route("sales.index") }}';
+            alert('✅ Sale completed successfully! Account balance has been updated.');
+            window.location.href = data.redirect || '{{ route("sales.index") }}';
         } else {
             throw new Error(data.message || 'Failed to complete sale');
         }

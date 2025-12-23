@@ -93,7 +93,7 @@ class Account extends Model
      */
     public function transactions()
     {
-        return $this->hasMany(Transaction::class);
+        return $this->hasMany(\App\Models\Transaction::class, 'account_id');
     }
 
     /**
@@ -103,7 +103,15 @@ class Account extends Model
      */
 
     /**
-     * Calculate current balance dynamically
+     * Always return current_balance (fallback 0)
+     */
+    public function getCurrentBalanceAttribute($value)
+    {
+        return $value ?? 0;
+    }
+
+    /**
+     * Calculate balance from transactions (for verification/report)
      */
     public function getCalculatedBalanceAttribute()
     {

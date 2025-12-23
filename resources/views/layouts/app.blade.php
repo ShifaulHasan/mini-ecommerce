@@ -66,6 +66,7 @@
 
     <!-- Sidebar -->
     <div class="sidebar">
+        
         <h4 class="text-center fw-semibold px-3 mb-4" 
     style="line-height:1.4; font-size:16px; color:#e4e6eb;">
     Inventory Management Software And <br>
@@ -119,13 +120,13 @@
         </div>
 
         <!-- Return -->
-        <a class="nav-link text-white" data-bs-toggle="collapse" href="#returnMenu">
+        <!-- <a class="nav-link text-white" data-bs-toggle="collapse" href="#returnMenu">
             <i class="bi bi-arrow-return-left"></i> Return
             <i class="bi bi-chevron-down float-end"></i>
         </a>
         <div class="collapse" id="returnMenu">
             <a class="nav-link text-white" href="{{ route('sale-returns.index') }}">Sale Return</a>
-        </div>
+        </div> -->
 
         <!-- Accounting -->
         <a class="nav-link text-white" data-bs-toggle="collapse" href="#accountingMenu">
@@ -138,6 +139,11 @@
             <!-- <a class="nav-link text-white-50 ms-4" href="{{ route('money-transfers.index') }}">Money Transfer</a>
             <a class="nav-link text-white-50 ms-4" href="{{ route('accounting.balance-sheet') }}">Balance Sheet</a>  -->
             <a class="nav-link text-white-50 ms-4" href="{{ route('accounting.statement') }}">Account Statement</a>
+            <!-- <li class="nav-item">
+    <a class="nav-link" href="{{ route('accounting.statement') }}">
+        <i class="bi bi-file-text"></i> Account Statement
+    </a>
+</li> -->
         </div>
 
 

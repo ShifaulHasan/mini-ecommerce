@@ -15,12 +15,14 @@ class Sale extends Model
      * ========================
      */
     protected $fillable = [
-        'reference_no',
+        'reference_number',
 
         'sale_date',
         'customer_id',
         'warehouse_id',
+          'account_id',
 
+        'biller',              // 🔥 CRITICAL: This must be here!
         'sale_status',
         'payment_status',
         'payment_method',
@@ -96,6 +98,11 @@ class Sale extends Model
         return $this->hasMany(SaleItem::class, 'sale_id');
     }
 
+    public function account()
+{
+    return $this->belongsTo(Account::class);
+}
+
     /**
      * ========================
      * Reference Number Generator
@@ -111,9 +118,18 @@ class Sale extends Model
             ->first();
 
         $number = $lastSale
-            ? intval(substr($lastSale->reference_no, -4)) + 1
+            ? intval(substr($lastSale->reference_number, -4)) + 1
             : 1;
 
         return 'SAL-' . $date . '-' . str_pad($number, 4, '0', STR_PAD_LEFT);
     }
+    /**
+ * Sale has account transactions
+ */
+public function accountTransactions()
+{
+    return $this->hasMany(AccountTransaction::class, 'reference_id')
+        ->where('reference_type', 'sale');
+}
+    
 }

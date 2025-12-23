@@ -7,6 +7,8 @@ use App\Models\PurchaseItem;
 use App\Models\Product;
 use App\Models\Warehouse;
 use App\Models\User;
+use App\Models\Account;
+use App\Models\AccountTransaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -38,8 +40,9 @@ class PurchaseController extends Controller
         $products = Product::all();
         $warehouses = Warehouse::all();
         $suppliers = User::where('role', 'Supplier')->get();
+        $accounts = Account::where('status', 'active')->get();
 
-        return view('purchases.create', compact('referenceNo', 'products', 'warehouses', 'suppliers'));
+        return view('purchases.create', compact('referenceNo', 'products', 'warehouses', 'suppliers', 'accounts'));
     }
 
     /** ===========================
@@ -48,21 +51,21 @@ class PurchaseController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'purchase_date' => 'required|date',
-            'reference_no' => 'required|unique:purchases,reference_no',
-            'warehouse_id' => 'required|exists:warehouses,id',
-            'supplier_id' => 'nullable|exists:users,id',
+            'purchase_date'   => 'required|date',
+            'reference_no'    => 'required|unique:purchases,reference_no',
+            'warehouse_id'    => 'required|exists:warehouses,id',
+            'supplier_id'     => 'nullable|exists:users,id',
             'purchase_status' => 'required|in:received,pending',
-            'payment_status' => 'required|in:paid,partial,pending',
-            'payment_method' => 'nullable|string',
-            'grand_total' => 'required|numeric',
-            'amount_paid' => 'nullable|numeric',
-            'notes' => 'nullable|string',
-            'document' => 'nullable|file|mimes:pdf,jpg,png,jpeg|max:2048',
-            'items' => 'required|array|min:1',
+            'payment_status'  => 'required|in:paid,partial,pending',
+            'payment_method'  => 'nullable|string',
+            'account_id'      => 'required|exists:accounts,id',
+            'grand_total'     => 'required|numeric',
+            'amount_paid'     => 'nullable|numeric',
+            'notes'           => 'nullable|string',
+            'document'        => 'nullable|file|mimes:pdf,jpg,png,jpeg|max:2048',
+            'items'           => 'required|array|min:1',
         ]);
 
-        // Verify supplier role
         if ($validated['supplier_id']) {
             $supplier = User::find($validated['supplier_id']);
             if (!$supplier || $supplier->role !== 'Supplier') {
@@ -82,13 +85,28 @@ class PurchaseController extends Controller
         $validated['created_by'] = auth()->id();
         $validated['document'] = $documentPath;
 
+        // Amounts
+        $paidAmount = $validated['amount_paid'] ?? 0;
+        $dueAmount  = max(0, $validated['grand_total'] - $paidAmount);
+        $validated['paid_amount'] = $paidAmount;
+        $validated['due_amount']  = $dueAmount;
+
         DB::beginTransaction();
         try {
+            // Create Purchase
             $purchase = Purchase::create($validated);
 
-            // Store items and update product stock if received
+            // Create Items and update stock
             foreach ($request->items as $item) {
-                $purchase->items()->create($item);
+                $purchase->items()->create([
+                    'product_id'  => $item['product_id'],
+                    'quantity'    => $item['quantity'],
+                    'batch_id'    => $item['batch_id'] ?? null,
+                    'expiry_date' => $item['expiry_date'] ?? null,
+                    'cost_price'  => $item['cost_price'] ?? 0,
+                    'discount'    => $item['discount'] ?? 0,
+                    'tax'         => $item['tax'] ?? 0,
+                ]);
 
                 if ($validated['purchase_status'] === 'received') {
                     $product = Product::find($item['product_id']);
@@ -102,13 +120,45 @@ class PurchaseController extends Controller
                 }
             }
 
+            // Update account balance & create transaction
+            if ($paidAmount > 0) {
+                $account = Account::lockForUpdate()->find($validated['account_id']);
+                if (!$account) throw new \Exception("Account not found");
+
+                $balanceBefore = $account->current_balance;
+                $account->current_balance -= $paidAmount;
+                $account->save();
+
+                AccountTransaction::create([
+                    'account_id'       => $account->id,
+                    'reference_type'   => 'purchase',
+                    'reference_id'     => $purchase->id,
+                    'transaction_type' => 'debit',
+                    'amount'           => $paidAmount,
+                    'balance_before'   => $balanceBefore,
+                    'balance_after'    => $account->current_balance,
+                    'description'      => "Purchase payment - {$purchase->reference_no}",
+                    'transaction_date' => $validated['purchase_date'],
+                    'created_by'       => auth()->id(),
+                ]);
+            }
+
             DB::commit();
-            return redirect()->route('purchases.index')->with('success', 'Purchase created successfully!');
+
+            return response()->json([
+                'success'     => true,
+                'message'     => 'Purchase created successfully!',
+                'purchase_id' => $purchase->id,
+            ]);
 
         } catch (\Exception $e) {
             DB::rollBack();
             \Log::error('Purchase Store Error: ' . $e->getMessage());
-            return back()->with('error', 'Failed to create purchase: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create purchase: ' . $e->getMessage()
+            ], 500);
         }
     }
 
@@ -129,8 +179,9 @@ class PurchaseController extends Controller
         $products = Product::all();
         $warehouses = Warehouse::all();
         $suppliers = User::where('role', 'Supplier')->get();
+        $accounts = Account::where('status', 'active')->get();
 
-        return view('purchases.edit', compact('purchase', 'products', 'warehouses', 'suppliers'));
+        return view('purchases.edit', compact('purchase', 'products', 'warehouses', 'suppliers', 'accounts'));
     }
 
     /** ===========================
@@ -139,17 +190,17 @@ class PurchaseController extends Controller
     public function update(Request $request, Purchase $purchase)
     {
         $validated = $request->validate([
-            'purchase_date' => 'required|date',
-            'warehouse_id' => 'required|exists:warehouses,id',
-            'supplier_id' => 'nullable|exists:users,id',
+            'purchase_date'   => 'required|date',
+            'warehouse_id'    => 'required|exists:warehouses,id',
+            'supplier_id'     => 'nullable|exists:users,id',
             'purchase_status' => 'required|in:received,pending',
-            'payment_status' => 'required|in:paid,partial,pending',
-            'payment_method' => 'nullable|string',
-            'grand_total' => 'required|numeric',
-            'amount_paid' => 'nullable|numeric',
-            'notes' => 'nullable|string',
-            'document' => 'nullable|file|mimes:pdf,jpg,png,jpeg|max:2048',
-            'items' => 'required|array|min:1',
+            'payment_status'  => 'required|in:paid,partial,pending',
+            'payment_method'  => 'nullable|string',
+            'grand_total'     => 'required|numeric',
+            'amount_paid'     => 'nullable|numeric',
+            'notes'           => 'nullable|string',
+            'document'        => 'nullable|file|mimes:pdf,jpg,png,jpeg|max:2048',
+            'items'           => 'required|array|min:1',
         ]);
 
         if ($validated['supplier_id']) {
@@ -159,7 +210,6 @@ class PurchaseController extends Controller
             }
         }
 
-        // Handle document upload
         if ($request->hasFile('document')) {
             $file = $request->file('document');
             $filename = time() . '_' . $file->getClientOriginalName();
@@ -171,7 +221,7 @@ class PurchaseController extends Controller
         try {
             $purchase->update($validated);
 
-            // Delete old items and add new
+            // Remove old items and add new
             $purchase->items()->delete();
             foreach ($request->items as $item) {
                 $purchase->items()->create($item);
@@ -180,9 +230,7 @@ class PurchaseController extends Controller
                     $product = Product::find($item['product_id']);
                     if ($product) {
                         $product->increment('stock', $item['quantity']);
-                        if (isset($item['cost_price'])) {
-                            $product->cost_price = $item['cost_price'];
-                        }
+                        if (isset($item['cost_price'])) $product->cost_price = $item['cost_price'];
                         $product->save();
                     }
                 }
@@ -190,7 +238,6 @@ class PurchaseController extends Controller
 
             DB::commit();
             return redirect()->route('purchases.index')->with('success', 'Purchase updated successfully!');
-
         } catch (\Exception $e) {
             DB::rollBack();
             \Log::error('Purchase Update Error: ' . $e->getMessage());
@@ -205,16 +252,36 @@ class PurchaseController extends Controller
     {
         DB::beginTransaction();
         try {
+            // Restore stock
             foreach ($purchase->items as $item) {
                 $product = Product::find($item->product_id);
-                if ($product) {
-                    $product->decrement('stock', $item->quantity);
+                if ($product) $product->decrement('stock', $item->quantity);
+            }
+
+            // Restore account balance
+            if ($purchase->paid_amount > 0 && $purchase->account_id) {
+                $account = Account::lockForUpdate()->find($purchase->account_id);
+                if ($account) {
+                    $balanceBefore = $account->current_balance;
+                    $account->current_balance += $purchase->paid_amount;
+                    $account->save();
+
+                    AccountTransaction::create([
+                        'account_id'       => $account->id,
+                        'reference_type'   => 'purchase',
+                        'reference_id'     => $purchase->id,
+                        'transaction_type' => 'credit',
+                        'amount'           => $purchase->paid_amount,
+                        'balance_before'   => $balanceBefore,
+                        'balance_after'    => $account->current_balance,
+                        'description'      => "Purchase deletion reversal - {$purchase->reference_no}",
+                        'transaction_date' => now()->format('Y-m-d'),
+                        'created_by'       => auth()->id(),
+                    ]);
                 }
             }
 
-            if ($purchase->document) {
-                @unlink(public_path($purchase->document));
-            }
+            if ($purchase->document) @unlink(public_path($purchase->document));
 
             $purchase->delete();
             DB::commit();
@@ -237,14 +304,14 @@ class PurchaseController extends Controller
         }
 
         return response()->json([
-            'success'=>true,
-            'product'=>[
-                'id' => $product->id,
-                'name' => $product->name,
-                'code' => $product->product_code ?? 'N/A',
-                'cost_price' => $product->cost_price ?? 0,
+            'success' => true,
+            'product' => [
+                'id'            => $product->id,
+                'name'          => $product->name,
+                'code'          => $product->product_code ?? 'N/A',
+                'cost_price'    => $product->cost_price ?? 0,
                 'current_stock' => $product->stock,
-                'unit' => optional($product->unit)->name ?? 'pc',
+                'unit'          => optional($product->unit)->name ?? 'pc',
             ]
         ]);
     }
