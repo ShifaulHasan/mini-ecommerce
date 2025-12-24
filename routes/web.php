@@ -14,6 +14,7 @@ use App\Http\Controllers\PurchaseController;
 use App\Http\Controllers\PurchasePaymentController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\CustomerGroupController;
 use App\Http\Controllers\SaleController;
 use App\Http\Controllers\POSController;
 use App\Http\Controllers\SaleReturnController;
@@ -157,6 +158,12 @@ Route::middleware(['auth'])->group(function () {
     
      // Customer Routes
     Route::resource('customers', CustomerController::class);
+    Route::get('customers/{customer}/payment', [CustomerController::class, 'showPaymentForm'])->name('customers.payment');
+Route::post('customers/{customer}/payment', [CustomerController::class, 'processPayment'])->name('customers.payment.process');
+Route::get('customers/{customer}/ledger', [CustomerController::class, 'ledger'])->name('customers.ledger');
+
+// Customer Group Routes
+Route::resource('customer-groups', CustomerGroupController::class);
     
     // Biller Routes
     Route::resource('billers', BillerController::class);
