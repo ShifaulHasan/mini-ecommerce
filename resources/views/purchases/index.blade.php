@@ -121,11 +121,11 @@
 
                             <td>{{ $purchase->warehouse->name ?? 'N/A' }}</td>
 
-                            <td>{{ number_format($purchase->total,2) }}</td>
+                            <td>৳{{ number_format($purchase->total,2) }}</td>
 
-                            <td>{{ number_format($purchase->paid_amount,2) }}</td>
+                            <td>৳{{ number_format($purchase->paid_amount,2) }}</td>
 
-                            <td>{{ number_format($purchase->due_amount,2) }}</td>
+                            <td>৳{{ number_format($purchase->due_amount,2) }}</td>
 
                             <td>
                                 @if($purchase->payment_status=='paid')

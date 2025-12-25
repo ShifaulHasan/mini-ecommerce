@@ -319,10 +319,10 @@
                             </td>
                             <td>{{ ucfirst(str_replace('_', ' ', $sale->payment_method ?? 'N/A')) }}</td>
                             <td>{{ $sale->delivery_status ?? 'N/A' }}</td>
-                            <td>${{ number_format($sale->grand_total ?? 0, 2) }}</td>
-                            <td>${{ number_format($sale->returned_amount ?? 0, 2) }}</td>
-                            <td>${{ number_format($sale->paid_amount ?? 0, 2) }}</td>
-                            <td>${{ number_format($sale->due_amount ?? 0, 2) }}</td>
+                            <td>৳{{ number_format($sale->grand_total ?? 0, 2) }}</td>
+                            <td>৳{{ number_format($sale->returned_amount ?? 0, 2) }}</td>
+                            <td>৳{{ number_format($sale->paid_amount ?? 0, 2) }}</td>
+                            <td>৳{{ number_format($sale->due_amount ?? 0, 2) }}</td>
                             <td>
                                 <div class="btn-group" role="group">
                                     <a href="{{ route('sales.show', $sale->id) }}" class="btn btn-sm btn-info" title="View">

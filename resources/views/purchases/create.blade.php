@@ -220,14 +220,14 @@
                             </select>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label fw-bold">Supplier</label>
-                            <select name="supplier_id" class="form-select">
-                                <option value="">Select Supplier</option>
-                                @foreach($suppliers as $supplier)
-                                <option value="{{ $supplier->id }}">{{ $supplier->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
+    <label class="form-label fw-bold">Supplier</label>
+    <select name="supplier_id" class="form-select">
+        <option value="">Select Supplier</option>
+        @foreach($suppliers as $supplier)
+       <option value="{{ $supplier->id }}">{{ $supplier->name }}</option>
+        @endforeach
+    </select>
+</div>
                         <div class="col-md-4">
                             <label class="form-label fw-bold">Attach Document</label>
                             <input type="file" name="document" class="form-control" accept=".pdf,.jpg,.png,.jpeg">
@@ -299,15 +299,15 @@
                     <div class="row g-3">
                         <div class="col-md-4">
                             <label class="form-label fw-bold">Order Tax (%)</label>
-                            <input type="number" id="orderTax" class="form-control" step="0.01" value="0" onchange="calculateTotal()">
+                            <input type="number" id="orderTax" class="form-control" step="any" value="0" onchange="calculateTotal()">
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label fw-bold">Discount ($)</label>
-                            <input type="number" id="orderDiscount" class="form-control" step="0.01" value="0" onchange="calculateTotal()">
+                            <label class="form-label fw-bold">Discount (৳)</label>
+                            <input type="number" id="orderDiscount" class="form-control" step="any" value="0" onchange="calculateTotal()">
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label fw-bold">Shipping ($)</label>
-                            <input type="number" id="shippingCost" class="form-control" step="0.01" value="0" onchange="calculateTotal()">
+                            <label class="form-label fw-bold">Shipping (৳)</label>
+                            <input type="number" id="shippingCost" class="form-control" step="any" value="0" onchange="calculateTotal()">
                         </div>
                         <div class="col-12">
                             <label class="form-label fw-bold">Note</label>
@@ -330,19 +330,19 @@
                     </div>
                     <div class="calc-row">
                         <span>Total:</span>
-                        <strong id="displaySubtotal">৳0.00</strong>
+                        <strong id="displaySubtotal">৳ 0.00</strong>
                     </div>
                     <div class="calc-row">
                         <span>Order Tax:</span>
-                        <strong id="displayOrderTax">৳0.00</strong>
+                        <strong id="displayOrderTax">৳ 0.00</strong>
                     </div>
                     <div class="calc-row">
                         <span>Discount:</span>
-                        <strong id="displayOrderDiscount">৳0.00</strong>
+                        <strong id="displayOrderDiscount">৳ 0.00</strong>
                     </div>
                     <div class="calc-row">
                         <span>Shipping:</span>
-                        <strong id="displayShipping">৳0.00</strong>
+                        <strong id="displayShipping">৳ 0.00</strong>
                     </div>
                     <div class="calc-row grand-total">
                         <span>Grand Total:</span>
@@ -452,12 +452,12 @@
                                 <h6 class="fw-bold mb-3">Payment Summary</h6>
                                 <div class="d-flex justify-content-between mb-2">
                                     <span>Grand Total:</span>
-                                    <strong id="paymentTotal">$0.00</strong>
+                                    <strong id="paymentTotal">৳ 0.00</strong>
                                 </div>
                                 <hr>
                                 <div class="mb-3">
                                     <label class="form-label fw-bold">Amount Paying</label>
-                                    <input type="number" id="amountPaying" class="form-control" step="0.01" onchange="calculateChange()">
+                                    <input type="number" id="amountPaying" class="form-control" step="any" onchange="calculateChange()">
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label fw-bold">Change Return</label>
@@ -615,7 +615,7 @@ function renderOrderTable() {
                 <input type="number" class="form-control form-control-sm" step="0.01" value="${item.tax}" 
                        onchange="updateTax(${item.id}, this.value)">
             </td>
-            <td><strong>$${calculateItemSubtotal(item).toFixed(2)}</strong></td>
+            <td><strong>৳${calculateItemSubtotal(item).toFixed(2)}</strong></td>
             <td>
                 <i class="bi bi-trash delete-btn" onclick="removeItem(${item.id})"></i>
             </td>
@@ -703,11 +703,11 @@ function calculateTotal() {
     const displayGrandTotalEl = document.getElementById('displayGrandTotal');
     
     if (totalItemsEl) totalItemsEl.textContent = orderItems.length;
-    if (displaySubtotalEl) displaySubtotalEl.textContent = '$' + subtotal.toFixed(2);
-    if (displayOrderTaxEl) displayOrderTaxEl.textContent = '$' + orderTax.toFixed(2);
-    if (displayOrderDiscountEl) displayOrderDiscountEl.textContent = '$' + orderDiscount.toFixed(2);
-    if (displayShippingEl) displayShippingEl.textContent = '$' + shipping.toFixed(2);
-    if (displayGrandTotalEl) displayGrandTotalEl.textContent = '$' + grandTotal.toFixed(2);
+    if (displaySubtotalEl) displaySubtotalEl.textContent = '৳' + subtotal.toFixed(2);
+    if (displayOrderTaxEl) displayOrderTaxEl.textContent = '৳' + orderTax.toFixed(2);
+    if (displayOrderDiscountEl) displayOrderDiscountEl.textContent = '৳' + orderDiscount.toFixed(2);
+    if (displayShippingEl) displayShippingEl.textContent = '৳' + shipping.toFixed(2);
+    if (displayGrandTotalEl) displayGrandTotalEl.textContent = '৳' + grandTotal.toFixed(2);
 }
 
 function showPaymentModal() {
@@ -724,13 +724,13 @@ function showPaymentModal() {
     }
     
     const grandTotalEl = document.getElementById('displayGrandTotal');
-    const grandTotal = grandTotalEl ? grandTotalEl.textContent : '$0.00';
+    const grandTotal = grandTotalEl ? grandTotalEl.textContent : '৳0.00';
     
     const paymentTotalEl = document.getElementById('paymentTotal');
     const amountPayingInput = document.getElementById('amountPaying');
     
     if (paymentTotalEl) paymentTotalEl.textContent = grandTotal;
-    if (amountPayingInput) amountPayingInput.value = grandTotal.replace('$', '');
+    if (amountPayingInput) amountPayingInput.value = grandTotal.replace('৳', '');
     
     calculateChange();
     
@@ -757,10 +757,10 @@ function calculateChange() {
     
     if (!paymentTotalEl || !amountPayingInput || !changeReturnInput) return;
     
-    const total = parseFloat(paymentTotalEl.textContent.replace('$', '').replace(/,/g, ''));
+    const total = parseFloat(paymentTotalEl.textContent.replace('৳', '').replace(/,/g, ''));
     const paying = parseFloat(amountPayingInput.value) || 0;
     const change = paying - total;
-    changeReturnInput.value = change >= 0 ? '$' + change.toFixed(2) : '$0.00';
+    changeReturnInput.value = change >= 0 ? '৳' + change.toFixed(2) : '৳ 0.00';
 }
 
 function completePurchase(event) {
@@ -798,8 +798,8 @@ function completePurchase(event) {
     
     // Get grand total
     const grandTotalEl = document.getElementById('displayGrandTotal');
-    const grandTotalText = grandTotalEl ? grandTotalEl.textContent : '$0.00';
-    const grandTotal = parseFloat(grandTotalText.replace('$', '').replace('৳', '').replace(/,/g, ''));
+    const grandTotalText = grandTotalEl ? grandTotalEl.textContent : '৳0.00';
+    const grandTotal = parseFloat(grandTotalText.replace('৳', '').replace('৳', '').replace(/,/g, ''));
     
     // Calculate due amount
     const dueAmount = grandTotal - amountPaying;

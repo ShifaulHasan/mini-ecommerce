@@ -157,11 +157,14 @@
     <a class="nav-link text-white-50 ms-4" href="{{ route('users.index') }}">User List</a>
     <a class="nav-link text-white-50 ms-4" href="{{ route('users.create') }}">Add User</a>
      <a class="nav-link text-white-50 ms-4" href="{{ route('customers.index') }}">Customer List</a>
-    <a class="nav-link text-white-50 ms-4" href="{{ route('customers.create') }}">Add Customer</a> 
-    <!-- <a class="nav-link text-white-50 ms-4" href="{{ route('billers.index') }}">Biller List</a>
-    <a class="nav-link text-white-50 ms-4" href="{{ route('billers.create') }}">Add Biller</a>
+    <a class="nav-link text-white-50 ms-4" href="{{ route('customers.create') }}">Add Customer</a>
+    
+    
+    {{-- <a class="nav-link text-white-50 ms-4" href="{{ route('billers.index') }}">Biller List</a>
+    <a class="nav-link text-white-50 ms-4" href="{{ route('billers.create') }}">Add Biller</a> --}}
+    
     <a class="nav-link text-white-50 ms-4" href="{{ route('suppliers.index') }}">Supplier List</a>
-    <a class="nav-link text-white-50 ms-4" href="{{ route('suppliers.create') }}">Add Supplier</a> -->
+    <a class="nav-link text-white-50 ms-4" href="{{ route('suppliers.create') }}">Add Supplier</a>
 </div>
 
 
@@ -171,9 +174,9 @@
             <i class="bi bi-chevron-down float-end"></i>
         </a>
         <div class="collapse" id="hrmMenu">
-            <a class="nav-link text-white-50 ms-4" href="{{ route('departments.index') }}">Department</a>
+            <!-- <a class="nav-link text-white-50 ms-4" href="{{ route('departments.index') }}">Department</a> -->
             <a class="nav-link text-white-50 ms-4" href="{{ route('employees.index') }}">Employee</a>
-            <a class="nav-link text-white-50 ms-4" href="{{ route('attendances.index') }}">Attendance</a>
+            <!-- <a class="nav-link text-white-50 ms-4" href="{{ route('attendances.index') }}">Attendance</a> -->
             <a class="nav-link text-white-50 ms-4" href="{{ route('payrolls.index') }}">Payroll</a>
         </div>
 
