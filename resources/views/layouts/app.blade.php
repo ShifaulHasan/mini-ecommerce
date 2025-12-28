@@ -90,9 +90,9 @@
     <i class="bi bi-chevron-down float-end"></i>
 </a>
 <div class="collapse" id="productMenu">
-    <a class="nav-link text-white ms-4" href="{{ route('products.index') }}">Product List</a>
-    <a class="nav-link text-white ms-4" href="{{ route('adjustments.index') }}">Adjustment List</a>
-    <a class="nav-link text-white ms-4" href="{{ route('adjustments.create') }}">Add Adjustment</a>
+    <a class="nav-link text-white-50 ms-4" href="{{ route('products.index') }}">Product List</a>
+    <a class="nav-link text-white-50 ms-4" href="{{ route('adjustments.index') }}">Adjustment List</a>
+    <a class="nav-link text-white-50 ms-4" href="{{ route('adjustments.create') }}">Add Adjustment</a>
 </div>
 
 
@@ -102,8 +102,8 @@
             <i class="bi bi-chevron-down float-end"></i>
         </a>
         <div class="collapse" id="purchaseMenu">
-            <a class="nav-link text-white" href="{{ route('purchases.index') }}">Purchase List</a>
-            <a class="nav-link text-white" href="{{ route('purchases.create') }}">Add Purchase</a>
+            <a class="nav-link text-white-50 ms-4" href="{{ route('purchases.index') }}">Purchase List</a>
+            <a class="nav-link text-white-50 ms-4" href="{{ route('purchases.create') }}">Add Purchase</a>
         </div>
 
         <!-- Sale -->
@@ -112,8 +112,8 @@
             <i class="bi bi-chevron-down float-end"></i>
         </a>
         <div class="collapse" id="saleMenu">
-            <a class="nav-link text-white" href="{{ route('sales.index') }}">Sale List</a>
-            <a class="nav-link text-white" href="{{ route('sales.create') }}">Add Sale</a>
+            <a class="nav-link text-white-50 ms-4" href="{{ route('sales.index') }}">Sale List</a>
+            <a class="nav-link text-white-50 ms-4" href="{{ route('sales.create') }}">Add Sale</a>
             <a href="{{ route('pos.index') }}" class="nav-link">
     <i class="bi bi-shop"></i> POS
 </a>
@@ -168,17 +168,29 @@
 </div>
 
 
-        <!-- HRM -->
-        <a class="nav-link text-white" data-bs-toggle="collapse" href="#hrmMenu">
-            <i class="bi bi-people"></i> HRM
-            <i class="bi bi-chevron-down float-end"></i>
+     <!-- HRM -->
+<a class="nav-link text-white" data-bs-toggle="collapse" href="#hrmMenu">
+    <i class="bi bi-people"></i> HRM
+    <i class="bi bi-chevron-down float-end"></i>
+</a>
+
+<div class="collapse" id="hrmMenu">
+
+    {{-- Employee --}}
+    @if (Route::has('employees.index'))
+        <a class="nav-link text-white-50 ms-4" href="{{ route('employees.index') }}">
+            Employee
         </a>
-        <div class="collapse" id="hrmMenu">
-            <!-- <a class="nav-link text-white-50 ms-4" href="{{ route('departments.index') }}">Department</a> -->
-            <a class="nav-link text-white-50 ms-4" href="{{ route('employees.index') }}">Employee</a>
-            <!-- <a class="nav-link text-white-50 ms-4" href="{{ route('attendances.index') }}">Attendance</a> -->
-            <a class="nav-link text-white-50 ms-4" href="{{ route('payrolls.index') }}">Payroll</a>
-        </div>
+    @endif
+
+    {{-- Payroll --}}
+    @if (Route::has('payrolls.index'))
+        <a class="nav-link text-white-50 ms-4" href="{{ route('payrolls.index') }}">
+            Payroll
+        </a>
+    @endif
+
+</div>
 
        
 

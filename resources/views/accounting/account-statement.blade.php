@@ -372,7 +372,7 @@
                     
                     <!-- Export Buttons -->
                     <div class="export-buttons">
-                        <button class="btn-export pdf" onclick="exportPDF()">📄 Export PDF</button>
+                        <!-- <button class="btn-export pdf" onclick="exportPDF()">📄 Export PDF</button> -->
                         <button class="btn-export excel" onclick="exportExcel()">📊 Export Excel</button>
                         <button class="btn-export print" onclick="window.print()">🖨️ Print</button>
                     </div>
@@ -604,12 +604,12 @@
             window.location.href = '{{ route('accounting.statement') }}';
         }
 
-        function exportPDF() {
-            const form = document.getElementById('statementForm');
-            const formData = new FormData(form);
-            const params = new URLSearchParams(formData);
-            window.location.href = '{{ route('accounting.statement') }}?' + params.toString() + '&export=pdf';
-        }
+        // function exportPDF() {
+        //     const form = document.getElementById('statementForm');
+        //     const formData = new FormData(form);
+        //     const params = new URLSearchParams(formData);
+        //     window.location.href = '{{ route('accounting.statement') }}?' + params.toString() + '&export=pdf';
+        // }
 
         function exportExcel() {
             const form = document.getElementById('statementForm');

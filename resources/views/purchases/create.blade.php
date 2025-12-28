@@ -188,7 +188,7 @@
 
         <div class="row">
             <!-- Left Column -->
-            <div class="col-lg-8">
+            <div class="col-lg-9">
                 <!-- Purchase Information -->
                 <div class="purchase-card">
                     <h5 class="card-title-custom">
@@ -318,7 +318,7 @@
             </div>
 
             <!-- Right Column - Calculation Summary -->
-            <div class="col-lg-4">
+            <div class="col-lg-3">
                 <div class="calculation-sidebar">
                     <h5 class="mb-4">
                         <i class="bi bi-calculator"></i> Order Summary

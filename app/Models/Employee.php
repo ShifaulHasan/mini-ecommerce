@@ -2,24 +2,53 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Employee extends Model
 {
-    protected $fillable = ['department_id', 'name', 'email', 'phone', 'designation', 'salary', 'joining_date'];
+    use HasFactory;
 
-    public function department()
-    {
-        return $this->belongsTo(Department::class);
-    }
+    protected $fillable = [
+        'staff_id',
+        'image',
+        'name',
+        'username',
+        'password',
+        'email',
+        'role',
+        'phone',
+        'address',
+        'city',
+        'country',
+        'designation',
+        'salary',
+        'joining_date'
+    ];
 
-    public function attendances()
-    {
-        return $this->hasMany(Attendance::class);
-    }
+    protected $hidden = [
+        'password',
+    ];
 
-    public function payrolls()
+    // Available roles
+    public static function getRoles()
     {
-        return $this->hasMany(Payroll::class);
+        return [
+            'Admin',
+            'Employee',
+            'Manager',
+            'Staff',
+            'Cashier',
+            'Biller',
+            'HR',
+            'Receptionist',
+        ];
     }
+    /**
+ * Employee has many payrolls
+ */
+public function payrolls()
+{
+    return $this->hasMany(Payroll::class, 'employee_id');
+}
 }

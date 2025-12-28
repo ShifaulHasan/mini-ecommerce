@@ -142,6 +142,7 @@ Route::get('/suppliers/get-all', [SupplierController::class, 'getAllSuppliers'])
     Route::resource('employees', EmployeeController::class);
     Route::resource('attendances', AttendanceController::class);
     Route::resource('payrolls', PayrollController::class);
+ 
 
     // ===============================
     // Report Routes
