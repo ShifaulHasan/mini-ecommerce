@@ -2,9 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Product;
-use App\Models\Order;
-use App\Models\Category;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
@@ -13,128 +10,188 @@ class DashboardController extends Controller
 {
     public function index()
     {
-        // ======= SUMMARY CARDS DATA (Using Order Count as fallback) =======
+        // ============ SUMMARY CARDS ============
         
-        // Check what columns exist in orders table
-        $orderColumns = DB::getSchemaBuilder()->getColumnListing('orders');
-        
-        // Try to calculate totals based on available columns
-        if (in_array('total_amount', $orderColumns)) {
-            $totalSale = Order::sum('total_amount') ?? 0;
-            $totalPayment = Order::where('status', 'completed')->sum('total_amount') ?? 0;
-            $monthlySale = Order::whereMonth('created_at', Carbon::now()->month)
-                              ->whereYear('created_at', Carbon::now()->year)
-                              ->sum('total_amount') ?? 0;
-        } elseif (in_array('amount', $orderColumns)) {
-            $totalSale = Order::sum('amount') ?? 0;
-            $totalPayment = Order::where('status', 'completed')->sum('amount') ?? 0;
-            $monthlySale = Order::whereMonth('created_at', Carbon::now()->month)
-                              ->whereYear('created_at', Carbon::now()->year)
-                              ->sum('amount') ?? 0;
-        } else {
-            // Fallback: Use order count * average price (or dummy data)
-            $totalOrders = Order::count();
-            $totalSale = $totalOrders * 1000; // Dummy calculation
-            $totalPayment = Order::where('status', 'completed')->count() * 1000;
-            $monthlySale = Order::whereMonth('created_at', Carbon::now()->month)
-                              ->whereYear('created_at', Carbon::now()->year)
-                              ->count() * 1000;
-        }
-        
-        // Total Due: Difference between total sale and payment
-        $totalDue = $totalSale - $totalPayment;
+        // Total Sale (from sales table - same as Sale Report)
+        $totalSale = DB::selectOne("
+            SELECT COALESCE(SUM(grand_total), 0) as total
+            FROM sales
+            WHERE sale_status = 'completed'
+        ")->total;
 
-        // ======= CASH FLOW DATA =======
-        $months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        
+        // Total Payment (from sales - same as Sale Report)
+        $totalPayment = DB::selectOne("
+            SELECT COALESCE(SUM(paid_amount), 0) as total
+            FROM sales
+            WHERE sale_status = 'completed'
+        ")->total;
+
+        // Total Due (from sales - same as Sale Report)
+        $totalDue = DB::selectOne("
+            SELECT COALESCE(SUM(due_amount), 0) as total
+            FROM sales
+            WHERE sale_status = 'completed'
+        ")->total;
+
+        // This Month Sale
+        $monthlySale = DB::selectOne("
+            SELECT COALESCE(SUM(grand_total), 0) as total
+            FROM sales
+            WHERE sale_status = 'completed'
+            AND MONTH(sale_date) = MONTH(CURRENT_DATE())
+            AND YEAR(sale_date) = YEAR(CURRENT_DATE())
+        ")->total;
+
+        // ============ CASH FLOW CHART (Last 12 Months) ============
+        $months = [];
         $paymentReceived = [];
         $paymentSent = [];
-        
-        for ($i = 1; $i <= 12; $i++) {
-            // Count orders per month (or sum if amount column exists)
-            $monthlyOrders = Order::whereMonth('created_at', $i)
-                                  ->whereYear('created_at', Carbon::now()->year)
-                                  ->count();
+
+        for ($i = 11; $i >= 0; $i--) {
+            $date = Carbon::now()->subMonths($i);
+            $months[] = $date->format('M Y');
             
-            $paymentReceived[] = $monthlyOrders * 1000; // Adjust multiplier as needed
-            $paymentSent[] = $monthlyOrders * 800; // Dummy data for expenses
+            // Payment Received (Credit transactions)
+            $received = DB::selectOne("
+                SELECT COALESCE(SUM(amount), 0) as total
+                FROM account_transactions
+                WHERE transaction_type = 'credit'
+                AND MONTH(transaction_date) = ?
+                AND YEAR(transaction_date) = ?
+            ", [$date->month, $date->year])->total;
+            
+            $paymentReceived[] = (float) $received;
+            
+            // Payment Sent (Debit transactions)
+            $sent = DB::selectOne("
+                SELECT COALESCE(SUM(amount), 0) as total
+                FROM account_transactions
+                WHERE transaction_type = 'debit'
+                AND MONTH(transaction_date) = ?
+                AND YEAR(transaction_date) = ?
+            ", [$date->month, $date->year])->total;
+            
+            $paymentSent[] = (float) $sent;
         }
 
-        // ======= DONUT CHART DATA =======
-        $totalRevenue = $totalSale;
-        $totalPurchase = $totalSale * 0.6; // 60% as cost
-        $totalExpense = $totalSale * 0.1; // 10% as expense
-        $donutData = [$totalPurchase, $totalRevenue, $totalExpense];
+        // ============ DONUT CHART (This Month) ============
+        $currentMonth = Carbon::now()->month;
+        $currentYear = Carbon::now()->year;
 
-        // ======= PIE CHART DATA (Sales by Category) =======
-        try {
-            $categorySales = Product::join('categories', 'products.category_id', '=', 'categories.id')
-                                   ->select('categories.name', DB::raw('COUNT(products.id) as total'))
-                                   ->groupBy('categories.name')
-                                   ->get();
-            
-            $categoryLabels = $categorySales->pluck('name')->toArray();
-            $categoryData = $categorySales->pluck('total')->toArray();
-            
-            if (empty($categoryLabels)) {
-                $categoryLabels = ['Electronics', 'Clothing', 'Food', 'Others'];
-                $categoryData = [30, 25, 20, 25];
-            }
-        } catch (\Exception $e) {
-            $categoryLabels = ['Electronics', 'Clothing', 'Food', 'Others'];
-            $categoryData = [30, 25, 20, 25];
+        // Purchase (This Month)
+        $purchaseThisMonth = DB::selectOne("
+            SELECT COALESCE(SUM(grand_total), 0) as total
+            FROM purchases
+            WHERE MONTH(purchase_date) = ?
+            AND YEAR(purchase_date) = ?
+        ", [$currentMonth, $currentYear])->total;
+
+        // Revenue (This Month)
+        $revenueThisMonth = DB::selectOne("
+            SELECT COALESCE(SUM(grand_total), 0) as total
+            FROM sales
+            WHERE sale_status = 'completed'
+            AND MONTH(sale_date) = ?
+            AND YEAR(sale_date) = ?
+        ", [$currentMonth, $currentYear])->total;
+
+        // Expense (This Month - Debit transactions excluding purchases)
+        $expenseThisMonth = DB::selectOne("
+            SELECT COALESCE(SUM(amount), 0) as total
+            FROM account_transactions
+            WHERE transaction_type = 'debit'
+            AND reference_type NOT IN ('purchase', 'sale')
+            AND MONTH(transaction_date) = ?
+            AND YEAR(transaction_date) = ?
+        ", [$currentMonth, $currentYear])->total;
+
+        $donutData = [
+            (float) $purchaseThisMonth,
+            (float) $revenueThisMonth,
+            (float) $expenseThisMonth
+        ];
+
+        // ============ PIE CHART - Sales by Category ============
+        $categoryResults = DB::select("
+            SELECT 
+                c.name as category_name,
+                COALESCE(SUM(si.subtotal), 0) as total_sales
+            FROM categories c
+            LEFT JOIN products p ON p.category_id = c.id
+            LEFT JOIN sale_items si ON si.product_id = p.id
+            LEFT JOIN sales s ON s.id = si.sale_id AND s.sale_status = 'completed'
+            WHERE MONTH(s.sale_date) = ?
+            AND YEAR(s.sale_date) = ?
+            GROUP BY c.id, c.name
+            ORDER BY total_sales DESC
+            LIMIT 5
+        ", [$currentMonth, $currentYear]);
+
+        $categoryLabels = [];
+        $categoryData = [];
+        $totalCategorySales = array_sum(array_column($categoryResults, 'total_sales'));
+
+        foreach ($categoryResults as $cat) {
+            $categoryLabels[] = $cat->category_name;
+            // Calculate percentage
+            $percentage = $totalCategorySales > 0 ? round(($cat->total_sales / $totalCategorySales) * 100, 2) : 0;
+            $categoryData[] = $percentage;
         }
 
-        // ======= BAR CHART DATA (Monthly Orders) =======
+        // If no data, show placeholder
+        if (empty($categoryLabels)) {
+            $categoryLabels = ['No Sales'];
+            $categoryData = [100];
+        }
+
+        // ============ BAR CHART - Monthly Sales Overview (Last 12 Months) ============
         $monthlySales = [];
-        for ($i = 1; $i <= 12; $i++) {
-            $monthlyCount = Order::whereMonth('created_at', $i)
-                                ->whereYear('created_at', Carbon::now()->year)
-                                ->count();
-            $monthlySales[] = $monthlyCount * 1000; // Convert to amount
+
+        for ($i = 11; $i >= 0; $i--) {
+            $date = Carbon::now()->subMonths($i);
+            
+            $sales = DB::selectOne("
+                SELECT COALESCE(SUM(grand_total), 0) as total
+                FROM sales
+                WHERE sale_status = 'completed'
+                AND MONTH(sale_date) = ?
+                AND YEAR(sale_date) = ?
+            ", [$date->month, $date->year])->total;
+            
+            $monthlySales[] = (float) $sales;
         }
 
-        // ======= BEST PRODUCTS =======
-        try {
-            $bestProducts = Product::select('name', DB::raw('stock as qty'))
-                             ->orderBy('stock', 'DESC')
-                             ->limit(5)
-                             ->get();
-        } catch (\Exception $e) {
-            $bestProducts = collect([]);
-        }
+        // ============ BEST SELLING PRODUCTS (This Month) ============
+        $bestProducts = DB::select("
+            SELECT 
+                p.name,
+                SUM(si.quantity) as qty
+            FROM sale_items si
+            JOIN products p ON p.id = si.product_id
+            JOIN sales s ON s.id = si.sale_id
+            WHERE s.sale_status = 'completed'
+            AND MONTH(s.sale_date) = ?
+            AND YEAR(s.sale_date) = ?
+            GROUP BY p.id, p.name
+            ORDER BY qty DESC
+            LIMIT 10
+        ", [$currentMonth, $currentYear]);
 
-        // ======= RECENT TRANSACTIONS =======
-        $recent = Order::with('user')
-                     ->orderBy('created_at', 'DESC')
-                     ->limit(5)
-                     ->get()
-                     ->map(function($order) use ($orderColumns) {
-                         $amount = 0;
-                         if (in_array('total_amount', $orderColumns)) {
-                             $amount = $order->total_amount;
-                         } elseif (in_array('amount', $orderColumns)) {
-                             $amount = $order->amount;
-                         } else {
-                             $amount = 1000; // Fallback
-                         }
-                         
-                         return (object)[
-                             'date' => $order->created_at->format('Y-m-d'),
-                             'ref' => 'ORD-' . $order->id,
-                             'customer' => $order->user->name ?? 'Guest',
-                             'total' => number_format($amount, 2)
-                         ];
-                     });
-
-        // Original data (keep for compatibility)
-        $totalProducts = Product::count();
-        $totalOrders = Order::count();
-        $totalCategories = Category::count();
-        $recentOrders = Order::with('user')->latest()->take(5)->get();
+        // ============ RECENT TRANSACTIONS ============
+        $recent = DB::select("
+            SELECT 
+                DATE_FORMAT(s.sale_date, '%d-%m-%Y') as date,
+                s.reference_number as ref,
+                COALESCE(c.name, 'Walk-In Customer') as customer,
+                CONCAT('৳', FORMAT(s.grand_total, 2)) as total
+            FROM sales s
+            LEFT JOIN customers c ON c.id = s.customer_id
+            WHERE s.sale_status = 'completed'
+            ORDER BY s.sale_date DESC, s.id DESC
+            LIMIT 10
+        ");
 
         return view('dashboard', compact(
-            // New dashboard data
             'totalSale',
             'totalPayment',
             'totalDue',
@@ -147,27 +204,7 @@ class DashboardController extends Controller
             'categoryData',
             'monthlySales',
             'bestProducts',
-            'recent',
-            // Original data
-            'totalProducts',
-            'totalOrders',
-            'totalCategories',
-            'recentOrders'
+            'recent'
         ));
-    }
-
-    public function ajaxSearchProducts(Request $request)
-    {
-        $query = $request->input('query');
-
-        $products = Product::with('category')
-            ->where('name', 'like', "%{$query}%")
-            ->orWhereHas('category', function($q) use ($query) {
-                $q->where('name', 'like', "%{$query}%");
-            })
-            ->get();
-
-        // Return JSON for AJAX
-        return response()->json($products);
     }
 }

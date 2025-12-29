@@ -91,7 +91,7 @@ body { font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:#
                 </div>
                 <div class="product-name">{{ $product->name }}</div>
                 <div class="product-stock">Stock: {{ $product->stock ?? 0 }}</div>
-                <div class="product-price">${{ number_format($product->price ?? 0,2) }}</div>
+                <div class="product-price">৳{{ number_format($product->price ?? 0,2) }}</div>
                 <button class="btn btn-primary btn-sm mt-2" onclick="addToCart({{ $product->id }})">Add</button>
             </div>
             @endforeach
@@ -118,14 +118,14 @@ body { font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:#
         </div>
         <div class="cart-summary">
             <div class="tax-discount-section">
-                <input type="number" id="taxPercentage" placeholder="Tax %" value="0" step="0.01" onchange="renderCart()">
-                <input type="number" id="discountAmount" placeholder="Discount $" value="0" step="0.01" onchange="renderCart()">
+                <input type="number" id="taxPercentage" placeholder="Tax %" value="0" step="any" onchange="renderCart()">
+                <input type="number" id="discountAmount" placeholder="Discount  ৳" value="0" step="any" onchange="renderCart()">
             </div>
             <div class="summary-row"><span>Items:</span><strong id="totalItems">0</strong></div>
-            <div class="summary-row"><span>Subtotal:</span><strong id="subtotal">$0.00</strong></div>
-            <div class="summary-row"><span>Tax:</span><strong id="taxAmount">$0.00</strong></div>
-            <div class="summary-row"><span>Discount:</span><strong id="discountDisplay">$0.00</strong></div>
-            <div class="summary-row total"><span>Total:</span><strong id="grandTotal">$0.00</strong></div>
+            <div class="summary-row"><span>Subtotal:</span><strong id="subtotal"> ৳0.00</strong></div>
+            <div class="summary-row"><span>Tax:</span><strong id="taxAmount"> ৳0.00</strong></div>
+            <div class="summary-row"><span>Discount:</span><strong id="discountDisplay"> ৳0.00</strong></div>
+            <div class="summary-row total"><span>Total:</span><strong id="grandTotal"> ৳0.00</strong></div>
             <button class="checkout-btn" id="checkoutBtn" onclick="openPaymentModal()" disabled>Checkout</button>
         </div>
     </div>
@@ -150,7 +150,7 @@ body { font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:#
                                 @foreach($accounts as $account)
                                 <option value="{{ $account->id }}" {{ $account->is_default ? 'selected' : '' }}>
                                     {{ $account->name }} - {{ $account->account_no }} 
-                                    (Balance: ${{ number_format($account->current_balance, 2) }})
+                                    (Balance:  ৳ {{ number_format($account->current_balance, 2) }})
                                 </option>
                                 @endforeach
                             </select>
@@ -205,11 +205,11 @@ body { font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:#
                             <h6 class="fw-bold mb-3">Payment Details</h6>
                             <div class="d-flex justify-content-between mb-3">
                                 <span>Total Amount:</span>
-                                <strong id="modalTotal" style="font-size:20px; color:#667eea;">$0.00</strong>
+                                <strong id="modalTotal" style="font-size:20px; color:#667eea;">৳0.00</strong>
                             </div>
                             
                             <label class="form-label fw-bold">Amount Paying</label>
-                            <input type="number" id="amountPaying" class="form-control form-control-lg mb-3" step="0.01" onchange="calculateChange()">
+                            <input type="number" id="amountPaying" class="form-control form-control-lg mb-3" step="any" onchange="calculateChange()">
                             
                             <label class="form-label fw-bold">Change</label>
                             <input type="text" id="changeAmount" class="form-control form-control-lg mb-3" readonly style="background:white; font-size:24px; font-weight:700; color:#28a745;">
@@ -321,9 +321,9 @@ function calculateTotals() {
  */
 function updateSummary(items, subtotal, tax, discount, grandTotal = null) {
     document.getElementById('totalItems').textContent = items;
-    document.getElementById('subtotal').textContent = '$' + subtotal.toFixed(2);
-    document.getElementById('taxAmount').textContent = '$' + tax.toFixed(2);
-    document.getElementById('discountDisplay').textContent = '$' + discount.toFixed(2);
+    document.getElementById('subtotal').textContent = '৳' + subtotal.toFixed(2);
+    document.getElementById('taxAmount').textContent = '৳' + tax.toFixed(2);
+    document.getElementById('discountDisplay').textContent = '৳' + discount.toFixed(2);
     
     if (grandTotal === null) {
         grandTotal = subtotal + tax - discount;
@@ -471,10 +471,10 @@ function clearAmount() {
 }
 
 function calculateChange() {
-    const total = parseFloat(document.getElementById('modalTotal').textContent.replace('$', ''));
+    const total = parseFloat(document.getElementById('modalTotal').textContent.replace('৳', ''));
     const paying = parseFloat(document.getElementById('amountPaying').value) || 0;
     const change = paying - total;
-    document.getElementById('changeAmount').value = change >= 0 ? '$' + change.toFixed(2) : '$0.00';
+    document.getElementById('changeAmount').value = change >= 0 ? '$' + change.toFixed(2) : '৳0.00';
 }
 
 /**

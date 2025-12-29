@@ -2,9 +2,11 @@
     <x-slot name="header">
         <div class="d-flex justify-content-between align-items-center">
             <h2 class="h5 fw-semibold mb-0">Products</h2>
+             @can('create products')
             <a href="{{ route('products.create') }}" class="btn btn-sm btn-primary">
                 <i class="bi bi-plus-circle"></i> Add Product
             </a>
+            @endcan
         </div>
     </x-slot>
 
@@ -30,7 +32,9 @@
                             <th>Cost</th>
                             <th>Price</th>
                             <th>Stock</th>
+                                @canany(['edit products', 'delete products'])
                             <th>Actions</th>
+                                @endcanany
                         </tr>
                     </thead>
                     <tbody>
@@ -64,6 +68,9 @@
                             </td>
                             <td>
                                 <div class="btn-group btn-group-sm">
+
+                                     @canany(['edit products', 'delete products'])
+                                 
                                     <a href="{{ route('products.edit', $product) }}" class="btn btn-outline-primary">
                                         <i class="bi bi-pencil"></i>
                                     </a>
@@ -74,6 +81,7 @@
                                         <button type="submit" class="btn btn-outline-danger">
                                             <i class="bi bi-trash"></i>
                                         </button>
+                                        @endcanany
                                     </form>
                                 </div>
                             </td>

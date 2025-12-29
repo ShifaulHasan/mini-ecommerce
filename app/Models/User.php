@@ -5,14 +5,15 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Spatie\Permission\Traits\HasRoles; // ✅ ADD THIS
 
-// ✅ These imports are IMPORTANT
+// ✅ Model imports
 use App\Models\Purchase;
 use App\Models\Sale;
 
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, HasRoles; // ✅ ADD HasRoles HERE
 
     /**
      * Mass assignable attributes
@@ -48,7 +49,7 @@ class User extends Authenticatable
     }
 
     /**
-     * Available roles
+     * Available roles (legacy - will be replaced by Spatie)
      */
     public const ROLES = [
         'Admin',
@@ -62,7 +63,7 @@ class User extends Authenticatable
     ];
 
     /**
-     * Scope: filter users by role
+     * Scope: filter users by role (legacy)
      */
     public function scopeRole($query, $role)
     {
@@ -70,15 +71,15 @@ class User extends Authenticatable
     }
 
     /**
-     * Check exact role
+     * Check exact role (legacy - use hasRole() from Spatie instead)
      */
-    public function hasRole(string $role): bool
+    public function hasRoleLegacy(string $role): bool
     {
         return $this->role === $role;
     }
 
     /**
-     * Role helpers
+     * Role helpers (legacy)
      */
     public function isSupplier(): bool
     {

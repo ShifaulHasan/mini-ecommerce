@@ -68,35 +68,40 @@
     <div class="sidebar">
         
         <h4 class="text-center fw-semibold px-3 mb-4" 
-    style="line-height:1.4; font-size:16px; color:#e4e6eb;">
-    Inventory Management Software And <br>
-    <span style="color:#c7c9d1;">Smart Billing System with E-Commerce</span>
-</h4>
+            style="line-height:1.4; font-size:16px; color:#e4e6eb;">
+            Inventory Management Software And <br>
+            <span style="color:#c7c9d1;">Smart Billing System with E-Commerce</span>
+        </h4>
 
         <!-- Dashboard -->
+          @can('see dashboard')
         <a class="nav-link text-white" href="{{ route('dashboard') }}" class="{{ request()->is('dashboard*') ? 'active' : '' }}">
             <i class="bi bi-speedometer2"></i> Dashboard
         </a>
+        @endcan
 
         <!-- Categories -->
+        @can('manage categories')
         <a class="nav-link text-white" href="{{ route('categories.index') }}" class="{{ request()->is('categories*') ? 'active' : '' }}">
             <i class="bi bi-tags"></i> Categories
         </a>
+        @endcan
 
-        <!-- Products -->
         <!-- Product Dropdown -->
-<a class="nav-link text-white d-flex justify-content-between align-items-center" data-bs-toggle="collapse" href="#productMenu">
-    <span><i class="bi bi-box-seam"></i> Product</span>
-    <i class="bi bi-chevron-down float-end"></i>
-</a>
-<div class="collapse" id="productMenu">
-    <a class="nav-link text-white-50 ms-4" href="{{ route('products.index') }}">Product List</a>
-    <a class="nav-link text-white-50 ms-4" href="{{ route('adjustments.index') }}">Adjustment List</a>
-    <a class="nav-link text-white-50 ms-4" href="{{ route('adjustments.create') }}">Add Adjustment</a>
-</div>
-
+        @can('manage products')
+        <a class="nav-link text-white d-flex justify-content-between align-items-center" data-bs-toggle="collapse" href="#productMenu">
+            <span><i class="bi bi-box-seam"></i> Product</span>
+            <i class="bi bi-chevron-down float-end"></i>
+        </a>
+        <div class="collapse" id="productMenu">
+            <a class="nav-link text-white-50 ms-4" href="{{ route('products.index') }}">Product List</a>
+            <a class="nav-link text-white-50 ms-4" href="{{ route('adjustments.index') }}">Adjustment List</a>
+            <a class="nav-link text-white-50 ms-4" href="{{ route('adjustments.create') }}">Add Adjustment</a>
+        </div>
+        @endcan
 
         <!-- Purchase -->
+        @can('manage purchases')
         <a class="nav-link text-white" data-bs-toggle="collapse" href="#purchaseMenu">
             <i class="bi bi-cart-plus"></i> Purchase
             <i class="bi bi-chevron-down float-end"></i>
@@ -105,8 +110,10 @@
             <a class="nav-link text-white-50 ms-4" href="{{ route('purchases.index') }}">Purchase List</a>
             <a class="nav-link text-white-50 ms-4" href="{{ route('purchases.create') }}">Add Purchase</a>
         </div>
+        @endcan
 
         <!-- Sale -->
+        @can('manage sales')
         <a class="nav-link text-white" data-bs-toggle="collapse" href="#saleMenu">
             <i class="bi bi-cart-check"></i> Sale
             <i class="bi bi-chevron-down float-end"></i>
@@ -114,21 +121,14 @@
         <div class="collapse" id="saleMenu">
             <a class="nav-link text-white-50 ms-4" href="{{ route('sales.index') }}">Sale List</a>
             <a class="nav-link text-white-50 ms-4" href="{{ route('sales.create') }}">Add Sale</a>
-            <a href="{{ route('pos.index') }}" class="nav-link">
-    <i class="bi bi-shop"></i> POS
-</a>
+            <a class="nav-link text-white-50 ms-4" href="{{ route('pos.index') }}">
+                <i class="bi bi-shop"></i> POS
+            </a>
         </div>
-
-        <!-- Return -->
-        <!-- <a class="nav-link text-white" data-bs-toggle="collapse" href="#returnMenu">
-            <i class="bi bi-arrow-return-left"></i> Return
-            <i class="bi bi-chevron-down float-end"></i>
-        </a>
-        <div class="collapse" id="returnMenu">
-            <a class="nav-link text-white" href="{{ route('sale-returns.index') }}">Sale Return</a>
-        </div> -->
+        @endcan
 
         <!-- Accounting -->
+        @can('manage accounting')
         <a class="nav-link text-white" data-bs-toggle="collapse" href="#accountingMenu">
             <i class="bi bi-calculator"></i> Accounting
             <i class="bi bi-chevron-down float-end"></i>
@@ -136,88 +136,107 @@
         <div class="collapse" id="accountingMenu">
             <a class="nav-link text-white-50 ms-4" href="{{ route('accounts.index') }}">Account List</a>
             <a class="nav-link text-white-50 ms-4" href="{{ route('accounts.create') }}">Add Account</a>
-            <!-- <a class="nav-link text-white-50 ms-4" href="{{ route('money-transfers.index') }}">Money Transfer</a>
-            <a class="nav-link text-white-50 ms-4" href="{{ route('accounting.balance-sheet') }}">Balance Sheet</a>  -->
             <a class="nav-link text-white-50 ms-4" href="{{ route('accounting.statement') }}">Account Statement</a>
-            <!-- <li class="nav-item">
-    <a class="nav-link" href="{{ route('accounting.statement') }}">
-        <i class="bi bi-file-text"></i> Account Statement
-    </a>
-</li> -->
         </div>
+        @endcan
 
-
-      <!-- People -->
-<!-- People -->
-<a class="nav-link text-white" data-bs-toggle="collapse" href="#peopleMenu">
-    <i class="bi bi-person-lines-fill"></i> People
-    <i class="bi bi-chevron-down float-end"></i>
-</a>
-<div class="collapse" id="peopleMenu">
-    <a class="nav-link text-white-50 ms-4" href="{{ route('users.index') }}">User List</a>
-    <a class="nav-link text-white-50 ms-4" href="{{ route('users.create') }}">Add User</a>
-     <a class="nav-link text-white-50 ms-4" href="{{ route('customers.index') }}">Customer List</a>
-    <a class="nav-link text-white-50 ms-4" href="{{ route('customers.create') }}">Add Customer</a>
-    
-    
-    {{-- <a class="nav-link text-white-50 ms-4" href="{{ route('billers.index') }}">Biller List</a>
-    <a class="nav-link text-white-50 ms-4" href="{{ route('billers.create') }}">Add Biller</a> --}}
-    
-    <a class="nav-link text-white-50 ms-4" href="{{ route('suppliers.index') }}">Supplier List</a>
-    <a class="nav-link text-white-50 ms-4" href="{{ route('suppliers.create') }}">Add Supplier</a>
-</div>
-
-
-     <!-- HRM -->
-<a class="nav-link text-white" data-bs-toggle="collapse" href="#hrmMenu">
-    <i class="bi bi-people"></i> HRM
-    <i class="bi bi-chevron-down float-end"></i>
-</a>
-
-<div class="collapse" id="hrmMenu">
-
-    {{-- Employee --}}
-    @if (Route::has('employees.index'))
-        <a class="nav-link text-white-50 ms-4" href="{{ route('employees.index') }}">
-            Employee
+        <!-- People -->
+        @can('manage users')
+        <a class="nav-link text-white" data-bs-toggle="collapse" href="#peopleMenu">
+            <i class="bi bi-person-lines-fill"></i> People
+            <i class="bi bi-chevron-down float-end"></i>
         </a>
-    @endif
+        <div class="collapse" id="peopleMenu">
+            <a class="nav-link text-white-50 ms-4" href="{{ route('users.index') }}">User List</a>
+            <a class="nav-link text-white-50 ms-4" href="{{ route('users.create') }}">Add User</a>
+            <a class="nav-link text-white-50 ms-4" href="{{ route('customers.index') }}">Customer List</a>
+            <a class="nav-link text-white-50 ms-4" href="{{ route('customers.create') }}">Add Customer</a>
+            <a class="nav-link text-white-50 ms-4" href="{{ route('suppliers.index') }}">Supplier List</a>
+            <a class="nav-link text-white-50 ms-4" href="{{ route('suppliers.create') }}">Add Supplier</a>
+        </div>
+        @endcan
 
-    {{-- Payroll --}}
-    @if (Route::has('payrolls.index'))
-        <a class="nav-link text-white-50 ms-4" href="{{ route('payrolls.index') }}">
-            Payroll
+        <!-- HRM -->
+        @can('manage hrm')
+        <a class="nav-link text-white" data-bs-toggle="collapse" href="#hrmMenu">
+            <i class="bi bi-people"></i> HRM
+            <i class="bi bi-chevron-down float-end"></i>
         </a>
-    @endif
-
-</div>
-
-       
+        <div class="collapse" id="hrmMenu">
+            @if (Route::has('employees.index'))
+                <a class="nav-link text-white-50 ms-4" href="{{ route('employees.index') }}">Employee</a>
+            @endif
+            @if (Route::has('payrolls.index'))
+                <a class="nav-link text-white-50 ms-4" href="{{ route('payrolls.index') }}">Payroll</a>
+            @endif
+        </div>
+        @endcan
 
         <!-- Reports -->
+        @can('view reports')
         <a class="nav-link text-white" data-bs-toggle="collapse" href="#reportsMenu">
             <i class="bi bi-bar-chart"></i> Reports
             <i class="bi bi-chevron-down float-end"></i>
         </a>
         <div class="collapse" id="reportsMenu">
-            <a class="nav-link text-white-50 ms-4" href="{{ route('reports.products') }}">Product Report</a>
-            <a class="nav-link text-white-50 ms-4" href="{{ route('reports.sales') }}">Sale Report</a>
-            <a class="nav-link text-white-50 ms-4" href="{{ route('reports.payments') }}">Payment Report</a>
+            <a class="nav-link text-white-50 ms-4" href="{{ route('reports.products') }}">
+                <i class="bi bi-box"></i> Product Report
+            </a>
+            <a class="nav-link text-white-50 ms-4" href="{{ route('reports.sales') }}">
+                <i class="bi bi-cart-check"></i> Sale Report
+            </a>
+            <a class="nav-link text-white-50 ms-4" href="{{ route('reports.purchases') }}">
+                <i class="bi bi-bag"></i> Purchase Report
+            </a>
+            <a class="nav-link text-white-50 ms-4" href="{{ route('reports.adjustments') }}">
+                <i class="bi bi-arrow-left-right"></i> Adjustment Report
+            </a>
+            <a class="nav-link text-white-50 ms-4" href="{{ route('reports.payments') }}">
+                <i class="bi bi-credit-card"></i> Payment Report
+            </a>
+            <a class="nav-link text-white-50 ms-4" href="{{ route('reports.customers') }}">
+                <i class="bi bi-people"></i> Customer Report
+            </a>
+            <a class="nav-link text-white-50 ms-4" href="{{ route('reports.suppliers') }}">
+                <i class="bi bi-truck"></i> Supplier Report
+            </a>
         </div>
+        @endcan
 
         <!-- Settings -->
-        <a class="nav-link text-white" data-bs-toggle="collapse" href="#settingsMenu">
-            <i class="bi bi-gear"></i> Settings
-            <i class="bi bi-chevron-down float-end"></i>
-        </a>
-        <div class="collapse" id="settingsMenu">
-            <a class="nav-link text-white-50 ms-4" href="{{ route('settings.roles') }}">Role Permission</a>
-            <a class="nav-link text-white-50 ms-4" href="{{ route('settings.general') }}">General Setting</a>
-            <a class="nav-link text-white-50 ms-4" href="{{ route('settings.mail') }}">Mail Setting</a>
-            <a class="nav-link text-white-50 ms-4" href="{{ route('settings.sms') }}">SMS Setting</a>
-            <a class="nav-link text-white-50 ms-4" href="{{ route('settings.pos') }}">POS Setting</a>
-            <a class="nav-link text-white-50 ms-4" href="{{ route('settings.ecommerce') }}">E-commerce Setting</a>
-        </div>
+@can('manage settings')
+<a class="nav-link text-white" data-bs-toggle="collapse" href="#settingsMenu">
+    <i class="bi bi-gear"></i> Settings
+    <i class="bi bi-chevron-down float-end"></i>
+</a>
+<div class="collapse" id="settingsMenu">
+    <a class="nav-link text-white-50 ms-4" href="{{ route('user.roles') }}">
+        User Role Management
+    </a>
+    <a class="nav-link text-white-50 ms-4" href="{{ route('roles.index') }}">
+         Role Permission
+    </a>
+    <a class="nav-link text-white-50 ms-4" href="{{ route('permissions.index') }}">
+        Permission Management
+    </a>
+    <a class="nav-link text-white-50 ms-4" href="{{ route('settings.general') }}">
+         General Setting
+    </a>
+    <!-- Commented routes - uncomment when ready -->
+    <!-- <a class="nav-link text-white-50 ms-4" href="{{ route('settings.mail') }}">
+        <i class="bi bi-envelope"></i> Mail Setting
+    </a>
+    <a class="nav-link text-white-50 ms-4" href="{{ route('settings.sms') }}">
+        <i class="bi bi-chat-dots"></i> SMS Setting
+    </a>
+    <a class="nav-link text-white-50 ms-4" href="{{ route('settings.pos') }}">
+        <i class="bi bi-shop"></i> POS Setting
+    </a>
+    <a class="nav-link text-white-50 ms-4" href="{{ route('settings.ecommerce') }}">
+        <i class="bi bi-cart"></i> E-commerce Setting
+    </a> -->
+</div>
+@endcan
 
     </div>
     <!-- END Sidebar -->

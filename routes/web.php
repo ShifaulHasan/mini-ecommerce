@@ -29,7 +29,9 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\AdjustmentController;
 use App\Http\Controllers\UserController;
-
+use App\Http\Controllers\RoleController;
+use App\Http\Controllers\UserRoleController;
+use App\Http\Controllers\PermissionController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -42,6 +44,21 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    // ===============================
+    // Role & Permission Management
+    // ===============================
+    Route::get('/user-roles', [UserRoleController::class, 'index'])->name('user.roles');
+    Route::post('/user-roles/assign', [UserRoleController::class, 'assignRole'])->name('user.roles.assign');
+    Route::get('/roles', [RoleController::class, 'index'])->name('roles.index');
+    Route::post('/roles/{role}/permissions', [RoleController::class, 'assignPermissions'])->name('roles.permissions.assign');
+
+     Route::middleware(['auth'])->group(function () {
+
+    Route::get('/permissions', [PermissionController::class, 'index'])->name('permissions.index');
+    Route::post('/permissions', [PermissionController::class, 'store'])->name('permissions.store');
+
+});
 
     // Categories & Products
     Route::resource('categories', CategoryController::class);
@@ -114,46 +131,31 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Customer Group Routes
     Route::resource('customer-groups', CustomerGroupController::class);
 
-    /// ===============================
-    // Supplier Routes - COMPLETE FIX
-    // ===============================
-    
-    // Custom routes with different URL pattern to avoid conflicts
-    Route::get('/supplier-payment/{supplier}', [SupplierController::class, 'addPayment'])
-        ->name('supplier.payment.form');
-    
-    Route::post('/supplier-payment/{supplier}', [SupplierController::class, 'storePayment'])
-        ->name('supplier.payment.store');
-    
-    Route::get('/supplier-due-report/{supplier}', [SupplierController::class, 'dueReport'])
-        ->name('supplier.due.report');
-
-    // Standard supplier resource routes
+    // Supplier Routes
+    Route::get('/supplier-payment/{supplier}', [SupplierController::class, 'addPayment'])->name('supplier.payment.form');
+    Route::post('/supplier-payment/{supplier}', [SupplierController::class, 'storePayment'])->name('supplier.payment.store');
+    Route::get('/supplier-due-report/{supplier}', [SupplierController::class, 'dueReport'])->name('supplier.due.report');
     Route::resource('suppliers', SupplierController::class);
-    // Get all suppliers (AJAX endpoint)
-Route::get('/suppliers/get-all', [SupplierController::class, 'getAllSuppliers'])
-    ->name('suppliers.get-all')
-    ->middleware('auth');
-    
-    // ===============================
+    Route::get('/suppliers/get-all', [SupplierController::class, 'getAllSuppliers'])->name('suppliers.get-all');
+
     // HRM Routes
-    // ===============================
     Route::resource('departments', DepartmentController::class);
     Route::resource('employees', EmployeeController::class);
     Route::resource('attendances', AttendanceController::class);
     Route::resource('payrolls', PayrollController::class);
- 
 
-    // ===============================
     // Report Routes
-    // ===============================
-    Route::get('/reports/products', [ReportController::class, 'productReport'])->name('reports.products');
-    Route::get('/reports/sales', [ReportController::class, 'salesReport'])->name('reports.sales');
-    Route::get('/reports/payments', [ReportController::class, 'paymentReport'])->name('reports.payments');
+    Route::prefix('reports')->name('reports.')->group(function () {
+        Route::get('/products', [ReportController::class, 'productReport'])->name('products');
+        Route::get('/sales', [ReportController::class, 'saleReport'])->name('sales');
+        Route::get('/purchases', [ReportController::class, 'purchaseReport'])->name('purchases');
+        Route::get('/adjustments', [ReportController::class, 'adjustmentReport'])->name('adjustments');
+        Route::get('/payments', [ReportController::class, 'paymentReport'])->name('payments');
+        Route::get('/customers', [ReportController::class, 'customerReport'])->name('customers');
+        Route::get('/suppliers', [ReportController::class, 'supplierReport'])->name('suppliers');
+    });
 
-    // ===============================
     // Settings Routes
-    // ===============================
     Route::get('/settings/roles', [SettingController::class, 'roles'])->name('settings.roles');
     Route::get('/settings/general', [SettingController::class, 'general'])->name('settings.general');
     Route::get('/settings/mail', [SettingController::class, 'mail'])->name('settings.mail');
@@ -162,7 +164,7 @@ Route::get('/suppliers/get-all', [SupplierController::class, 'getAllSuppliers'])
     Route::get('/settings/ecommerce', [SettingController::class, 'ecommerce'])->name('settings.ecommerce');
     Route::post('/settings/update', [SettingController::class, 'update'])->name('settings.update');
 
-}); // ← CLOSING BRACE FOR AUTH MIDDLEWARE GROUP
+});
 
 // ===============================
 // Profile Routes
