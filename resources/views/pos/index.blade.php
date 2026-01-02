@@ -214,21 +214,7 @@ body { font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:#
                             <label class="form-label fw-bold">Change</label>
                             <input type="text" id="changeAmount" class="form-control form-control-lg mb-3" readonly style="background:white; font-size:24px; font-weight:700; color:#28a745;">
 
-                            <!-- Number Pad -->
-                            <div class="numpad">
-                                <button class="numpad-btn" onclick="addDigit('7')">7</button>
-                                <button class="numpad-btn" onclick="addDigit('8')">8</button>
-                                <button class="numpad-btn" onclick="addDigit('9')">9</button>
-                                <button class="numpad-btn" onclick="addDigit('4')">4</button>
-                                <button class="numpad-btn" onclick="addDigit('5')">5</button>
-                                <button class="numpad-btn" onclick="addDigit('6')">6</button>
-                                <button class="numpad-btn" onclick="addDigit('1')">1</button>
-                                <button class="numpad-btn" onclick="addDigit('2')">2</button>
-                                <button class="numpad-btn" onclick="addDigit('3')">3</button>
-                                <button class="numpad-btn" onclick="addDigit('0')">0</button>
-                                <button class="numpad-btn" onclick="addDigit('.')">.</button>
-                                <button class="numpad-btn clear" onclick="clearAmount()">C</button>
-                            </div>
+                         
                         </div>
                     </div>
                 </div>
@@ -277,7 +263,7 @@ function renderCart() {
             <div class="cart-item">
                 <div class="cart-item-info">
                     <div class="cart-item-name">${item.product_name}</div>
-                    <div class="cart-item-price">$${item.unit_price.toFixed(2)} each</div>
+                    <div class="cart-item-price">৳${item.unit_price.toFixed(2)} each</div>
                 </div>
                 <div class="cart-item-qty">
                     <button class="qty-btn" onclick="updateQty(${item.product_id}, ${item.quantity - 1})">-</button>
@@ -285,7 +271,7 @@ function renderCart() {
                            onchange="updateQty(${item.product_id}, this.value)">
                     <button class="qty-btn" onclick="updateQty(${item.product_id}, ${item.quantity + 1})">+</button>
                 </div>
-                <div class="fw-bold" style="min-width:70px; text-align:right;">$${itemTotal.toFixed(2)}</div>
+                <div class="fw-bold" style="min-width:70px; text-align:right;">৳${itemTotal.toFixed(2)}</div>
                 <button class="remove-btn" onclick="removeItem(${item.product_id})">
                     <i class="bi bi-trash"></i>
                 </button>
@@ -329,7 +315,7 @@ function updateSummary(items, subtotal, tax, discount, grandTotal = null) {
         grandTotal = subtotal + tax - discount;
     }
     
-    document.getElementById('grandTotal').textContent = '$' + grandTotal.toFixed(2);
+    document.getElementById('grandTotal').textContent = '৳' + grandTotal.toFixed(2);
 }
 
 /**
@@ -440,7 +426,7 @@ function openPaymentModal() {
 
     const grandTotal = document.getElementById('grandTotal').textContent;
     document.getElementById('modalTotal').textContent = grandTotal;
-    document.getElementById('amountPaying').value = grandTotal.replace('$', '');
+    document.getElementById('amountPaying').value = grandTotal.replace('৳', '');
     calculateChange();
     
     const modal = new bootstrap.Modal(document.getElementById('paymentModal'));
@@ -474,7 +460,7 @@ function calculateChange() {
     const total = parseFloat(document.getElementById('modalTotal').textContent.replace('৳', ''));
     const paying = parseFloat(document.getElementById('amountPaying').value) || 0;
     const change = paying - total;
-    document.getElementById('changeAmount').value = change >= 0 ? '$' + change.toFixed(2) : '৳0.00';
+    document.getElementById('changeAmount').value = change >= 0 ? '৳' + change.toFixed(2) : '৳0.00';
 }
 
 /**
@@ -499,7 +485,7 @@ function completeSale() {
     }
 
     const amountPaying = parseFloat(document.getElementById('amountPaying').value) || 0;
-    const grandTotal = parseFloat(document.getElementById('modalTotal').textContent.replace('$', ''));
+    const grandTotal = parseFloat(document.getElementById('modalTotal').textContent.replace('৳', ''));
 
     if (amountPaying <= 0) {
         alert('Please enter amount paying.');
@@ -552,7 +538,7 @@ function completeSale() {
         
         if (data.success) {
             const changeAmount = data.change || (amountPaying - grandTotal);
-            alert(`✅ Sale completed!\n\nReference: ${data.reference_no || 'N/A'}\nChange: $${changeAmount.toFixed(2)}`);
+            alert(`✅ Sale completed!\n\nReference: ${data.reference_no || 'N/A'}\nChange: ৳${changeAmount.toFixed(2)}`);
             
             cart = [];
             renderCart();
@@ -626,5 +612,19 @@ document.addEventListener('DOMContentLoaded', function() {
     fetchCart();
 });
 </script>
+
+
+    </div> 
+
+    <!-- Footer Note -->
+    <div class="row mt-4 mb-3">
+        <div class="col-12">
+            <p class="text-center text-muted small mb-0">
+                Developed by Shifaul Hasan &copy; 2026
+            </p>
+        </div>
+    </div>
+
+</div>
 </body>
 </html>

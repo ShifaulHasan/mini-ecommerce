@@ -127,7 +127,7 @@
                         </div>
                     </div>
 
-                    <div class="col-md-3">
+                    <!-- <div class="col-md-3">
                         <div class="card shadow-sm border-left-info">
                             <div class="card-body">
                                 <div class="text-uppercase text-info small">
@@ -135,7 +135,7 @@
                                 </div>
                                 <div class="h5">
                                     ৳{{ number_format($customer->deposited_balance ?? 0, 2) }}
-                                </div>
+                                </div> -->
                             </div>
                         </div>
                     </div>

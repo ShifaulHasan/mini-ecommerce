@@ -124,35 +124,6 @@
                     </div>
                 </div>
             </div>
-
-            <!-- Activity Card (Optional) -->
-            <div class="card mt-3">
-                <div class="card-header bg-secondary text-white">
-                    <h5 class="mb-0">Activity Summary</h5>
-                </div>
-                <div class="card-body">
-                    <div class="row text-center">
-                        <div class="col-md-4">
-                            <div class="p-3 border rounded">
-                                <h2 class="text-primary">0</h2>
-                                <p class="text-muted mb-0">Sales Made</p>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="p-3 border rounded">
-                                <h2 class="text-success">0</h2>
-                                <p class="text-muted mb-0">Purchases</p>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="p-3 border rounded">
-                                <h2 class="text-info">0</h2>
-                                <p class="text-muted mb-0">Total Actions</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
         </div>
     </div>
 </x-app-layout>

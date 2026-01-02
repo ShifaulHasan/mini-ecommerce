@@ -530,4 +530,18 @@
                 }
             }
     </script>
+
+
+    </div> 
+
+    <!-- Footer Note -->
+    <div class="row mt-4 mb-3">
+        <div class="col-12">
+            <p class="text-center text-muted small mb-0">
+                Developed by Shifaul Hasan &copy; 2026
+            </p>
+        </div>
+    </div>
+
+</div>
 </x-app-layout>

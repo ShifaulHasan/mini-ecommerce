@@ -4,9 +4,11 @@
     </x-slot>
 
     <div class="d-flex justify-content-between align-items-center mb-3">
+        @can('create adjustments')
         <a href="{{ route('adjustments.create') }}" class="btn btn-primary">
             <i class="bi bi-plus-circle"></i> Add Adjustment
         </a>
+        @endcan
     </div>
 
     @if(session('success'))
@@ -103,4 +105,17 @@
             </div>
         </div>
     </div>
+    </div> 
+
+    <!-- Footer Note -->
+    <div class="row mt-4 mb-3">
+        <div class="col-12">
+            <p class="text-center text-muted small mb-0">
+                Developed by Shifaul Hasan &copy; 2026
+            </p>
+        </div>
+    </div>
+
+</div>
+
 </x-app-layout>

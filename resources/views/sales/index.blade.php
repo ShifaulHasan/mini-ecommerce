@@ -5,12 +5,16 @@
                 <i class="bi bi-cart-check"></i> Sales List
             </h2>
             <div>
+                @can('create pos')
                 <a href="{{ route('pos.index') }}" class="btn btn-success me-2">
                     <i class="bi bi-shop"></i> POS
                 </a>
+                @endcan
+                @can('create sales')
                 <a href="{{ route('sales.create') }}" class="btn btn-primary">
                     <i class="bi bi-plus-circle"></i> Add Sale
                 </a>
+                @endcan
             </div>
         </div>
     </x-slot>
@@ -360,4 +364,18 @@
             </div>
         </div>
     </div>
+
+    </div> 
+
+    <!-- Footer Note -->
+    <div class="row mt-4 mb-3">
+        <div class="col-12">
+            <p class="text-center text-muted small mb-0">
+                Developed by Shifaul Hasan &copy; 2026
+            </p>
+        </div>
+    </div>
+
+</div>
+
 </x-app-layout>

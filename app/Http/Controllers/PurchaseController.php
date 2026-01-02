@@ -251,22 +251,23 @@ class PurchaseController extends Controller
             return response()->json(['success' => false, 'message' => 'Failed to create purchase: ' . $e->getMessage()], 500);
         }
     }
-
-    /**
-     * Display the specified purchase.
-     */
-    public function show(Purchase $purchase)
-    {
-        // Load supplier dynamically
-        if ($purchase->supplier_type === 'supplier') {
-            $purchase->load('supplierModel');
-        } else {
-            $purchase->load('userSupplier');
-        }
-        
-        $purchase->load(['warehouse', 'creator', 'items.product', 'account']);
-        return view('purchases.show', compact('purchase'));
+/**
+ * Display the specified purchase.
+ */
+public function show(Purchase $purchase)
+{
+    // Load supplier dynamically
+    if ($purchase->supplier_type === 'supplier') {
+        $purchase->load('supplierModel');
+    } else {
+        $purchase->load('userSupplier');
     }
+    
+    // Load all necessary relationships including items with products
+    $purchase->load(['warehouse', 'creator', 'items.product', 'account']);
+    
+    return view('purchases.show', compact('purchase'));
+}
 
     /**
      * Show the form for editing the specified purchase.

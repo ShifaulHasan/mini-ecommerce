@@ -433,7 +433,7 @@
                 </div>
 
                 <!-- Payment History -->
-                <div class="payments-section">
+                <!-- <div class="payments-section">
                     <h3 class="section-title">Payment History</h3>
                     <div style="overflow-x: auto;">
                         <table class="data-table">
@@ -467,7 +467,7 @@
                             </tbody>
                         </table>
                     </div>
-                </div>
+                </div> -->
 
                 <!-- Summary Section -->
                 <div class="summary-section">

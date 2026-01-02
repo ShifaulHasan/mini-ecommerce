@@ -3,9 +3,11 @@
         <div class="d-flex justify-content-between align-items-center">
             <h2 class="h4 fw-semibold mb-0">Purchase List</h2>
             <div>
+                @can('create purchases')
                 <a href="{{ route('purchases.create') }}" class="btn btn-primary btn-sm me-2">
                     <i class="bi bi-plus-circle"></i> Add Purchase
                 </a>
+                @endcan 
             </div>
         </div>
     </x-slot>
@@ -106,7 +108,9 @@
                             <th>Paid</th>
                             <th>Due</th>
                             <th>Status</th>
+                           
                             <th width="150">Action</th>
+                           
                         </tr>
                     </thead>
 
@@ -138,6 +142,7 @@
                             </td>
 
                             <td>
+                                
                                 <a href="{{ route('purchases.show',$purchase) }}" class="btn btn-sm btn-info">
                                     <i class="bi bi-eye"></i>
                                 </a>
@@ -154,6 +159,7 @@
                                     <button class="btn btn-sm btn-danger">
                                         <i class="bi bi-trash"></i>
                                     </button>
+                                  
                                 </form>
                             </td>
                         </tr>
@@ -175,5 +181,16 @@
             </div>
         </div>
     </div>
+      </div> 
 
+    <!-- Footer Note -->
+    <div class="row mt-4 mb-3">
+        <div class="col-12">
+            <p class="text-center text-muted small mb-0">
+                Developed by Shifaul Hasan &copy; 2026
+            </p>
+        </div>
+    </div>
+
+</div>
 </x-app-layout>

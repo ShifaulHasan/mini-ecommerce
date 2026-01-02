@@ -30,14 +30,24 @@
                         </div>
                         <div class="col-md-6">
                             <strong>Purchase Date:</strong>
-                            <p>{{ $purchase->purchase_date->format('d M Y') }}</p>
+                            <p>{{ \Carbon\Carbon::parse($purchase->purchase_date)->format('d M Y') }}</p>
                         </div>
                     </div>
 
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <strong>Supplier:</strong>
-                            <p>{{ $purchase->supplier->name ?? 'N/A' }}</p>
+                            <p>
+                                @if($purchase->supplier_type === 'supplier')
+                                    {{ $purchase->supplierModel->name ?? 'N/A' }}
+                                    @if($purchase->supplierModel && $purchase->supplierModel->company)
+                                        <small class="text-muted">({{ $purchase->supplierModel->company }})</small>
+                                    @endif
+                                @else
+                                    {{ $purchase->userSupplier->name ?? 'N/A' }}
+                                    <small class="text-muted">(User Account)</small>
+                                @endif
+                            </p>
                         </div>
                         <div class="col-md-6">
                             <strong>Warehouse:</strong>
@@ -67,42 +77,72 @@
                 </div>
             </div>
 
-            <!-- Purchase Items -->
-            <div class="card">
+            <!-- Purchased Products -->
+            <div class="card mb-3">
                 <div class="card-header bg-success text-white">
-                    <h5 class="mb-0">Purchase Items</h5>
+                    <h5 class="mb-0"><i class="bi bi-box-seam"></i> Purchased Products</h5>
                 </div>
                 <div class="card-body">
-
-                    <div class="table-responsive">
-                        <table class="table table-bordered table-sm">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Product</th>
-                                    <th>Quantity</th>
-                                    <th>Net Price</th>
-                                    <th>Subtotal</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach($purchase->items as $item)
-                                <tr>
-                                    <td>{{ $item->product->name ?? 'N/A' }}</td>
-                                    <td>{{ $item->quantity }}</td>
-                                    <td>{{ number_format($item->net_unit_cost,2) }}</td>
-                                    <td>{{ number_format($item->subtotal,2) }}</td>
-                                </tr>
-                                @endforeach
-                            </tbody>
-                            <tfoot>
-                                <tr class="table-light">
-                                    <td colspan="3" class="text-end"><strong>Total:</strong></td>
-                                    <td><strong>{{ number_format($purchase->total,2) }}</strong></td>
-                                </tr>
-                            </tfoot>
-                        </table>
-                    </div>
-
+                    @if($purchase->items && count($purchase->items) > 0)
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th width="50" class="text-center">#</th>
+                                        <th>Product Name</th>
+                                        <th width="120" class="text-center">Quantity</th>
+                                        <th width="150" class="text-end">Unit Price</th>
+                                        <th width="150" class="text-end">Subtotal</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($purchase->items as $index => $item)
+                                        <tr>
+                                            <td class="text-center">{{ $index + 1 }}</td>
+                                            <td>
+                                                <strong>{{ $item->product->name ?? 'N/A' }}</strong>
+                                                @if($item->product && $item->product->product_code)
+                                                    <br><small class="text-muted">Code: {{ $item->product->product_code }}</small>
+                                                @endif
+                                                @if($item->batch_id)
+                                                    <br><small class="text-info">Batch: {{ $item->batch_id }}</small>
+                                                @endif
+                                                @if($item->expiry_date)
+                                                    <br><small class="text-warning">Exp: {{ \Carbon\Carbon::parse($item->expiry_date)->format('d M Y') }}</small>
+                                                @endif
+                                            </td>
+                                            <td class="text-center">
+                                                <span class="badge bg-primary fs-6">{{ number_format($item->quantity, 0) }}</span>
+                                            </td>
+                                            <td class="text-end">
+                                                <strong>৳{{ number_format($item->cost_price, 2) }}</strong>
+                                            </td>
+                                            <td class="text-end">
+                                                <strong class="text-primary fs-6">
+                                                    ৳{{ number_format($item->quantity * $item->cost_price, 2) }}
+                                                </strong>
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                                <tfoot class="table-light">
+                                    <tr>
+                                        <td colspan="6" class="text-end"><strong>Total Amount:</strong></td>
+                                        <td class="text-end">
+                                            <strong class="text-primary fs-5">
+                                                ৳{{ number_format($purchase->grand_total, 2) }}
+                                            </strong>
+                                        </td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    @else
+                        <div class="text-center text-muted py-4">
+                            <i class="bi bi-inbox fs-1"></i>
+                            <p class="mb-0">No products found in this purchase</p>
+                        </div>
+                    @endif
                 </div>
             </div>
 
@@ -118,30 +158,91 @@
                 <div class="card-body">
 
                     <div class="d-flex justify-content-between mb-2">
-                        <span>Total:</span>
-                        <strong>{{ number_format($purchase->total, 2) }}</strong>
+                        <span>Subtotal:</span>
+                        <strong>৳{{ number_format($purchase->subtotal ?? $purchase->total, 2) }}</strong>
+                    </div>
+
+                    @if(isset($purchase->tax_amount) && $purchase->tax_amount > 0)
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Tax ({{ $purchase->tax_percentage ?? 0 }}%):</span>
+                        <strong class="text-success">৳{{ number_format($purchase->tax_amount, 2) }}</strong>
+                    </div>
+                    @endif
+
+                    @if(isset($purchase->discount_amount) && $purchase->discount_amount > 0)
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Discount:</span>
+                        <strong class="text-danger">-৳{{ number_format($purchase->discount_amount, 2) }}</strong>
+                    </div>
+                    @endif
+
+                    @if(isset($purchase->shipping_cost) && $purchase->shipping_cost > 0)
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Shipping:</span>
+                        <strong>৳{{ number_format($purchase->shipping_cost, 2) }}</strong>
+                    </div>
+                    @endif
+
+                    <hr>
+
+                    <div class="d-flex justify-content-between mb-2">
+                        <span><strong>Grand Total:</strong></span>
+                        <strong class="text-primary fs-5">৳{{ number_format($purchase->grand_total, 2) }}</strong>
                     </div>
 
                     <div class="d-flex justify-content-between mb-2">
                         <span>Paid:</span>
-                        <strong class="text-success">{{ number_format($purchase->paid_amount, 2) }}</strong>
+                        <strong class="text-success">৳{{ number_format($purchase->paid_amount, 2) }}</strong>
                     </div>
 
                     <div class="d-flex justify-content-between">
                         <span>Due:</span>
-                        <strong class="text-danger">{{ number_format($purchase->total - $purchase->paid_amount, 2) }}</strong>
+                        <strong class="text-danger">৳{{ number_format($purchase->due_amount, 2) }}</strong>
                     </div>
 
                 </div>
             </div>
 
+            @if($purchase->payment_method)
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="bi bi-credit-card"></i> Payment Info</h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-2">
+                        <strong>Payment Method:</strong>
+                        <p class="mb-0">{{ ucfirst($purchase->payment_method) }}</p>
+                    </div>
+                    @if($purchase->account)
+                    <div>
+                        <strong>Account:</strong>
+                        <p class="mb-0">{{ $purchase->account->account_name }}</p>
+                    </div>
+                    @endif
+                </div>
+            </div>
+            @endif
+
             @if($purchase->notes)
             <div class="card mb-3">
                 <div class="card-header">
-                    <h6 class="mb-0">Notes</h6>
+                    <h6 class="mb-0"><i class="bi bi-file-text"></i> Notes</h6>
                 </div>
                 <div class="card-body">
                     <p class="mb-0">{{ $purchase->notes }}</p>
+                </div>
+            </div>
+            @endif
+
+            @if($purchase->document_path)
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="bi bi-paperclip"></i> Attachment</h6>
+                </div>
+                <div class="card-body">
+                    <a href="{{ asset($purchase->document_path) }}" target="_blank" class="btn btn-sm btn-outline-primary w-100">
+                        <i class="bi bi-download"></i> Download Document
+                    </a>
                 </div>
             </div>
             @endif
@@ -157,7 +258,7 @@
 
                         <form action="{{ route('purchases.destroy', $purchase) }}" 
                               method="POST"
-                              onsubmit="return confirm('Are you sure?')">
+                              onsubmit="return confirm('Are you sure you want to delete this purchase?')">
                             @csrf
                             @method('DELETE')
                             <button class="btn btn-danger w-100">

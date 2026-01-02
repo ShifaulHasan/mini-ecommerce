@@ -4,9 +4,14 @@
             <h2 class="h5 fw-semibold mb-0">
                 <i class="bi bi-receipt"></i> Sale Details
             </h2>
-            <a href="{{ route('sales.index') }}" class="btn btn-sm btn-secondary">
-                <i class="bi bi-arrow-left"></i> Back to List
-            </a>
+            <div class="d-flex gap-2">
+                <button onclick="window.print()" class="btn btn-sm btn-secondary">
+                    <i class="bi bi-printer"></i> Print
+                </button>
+                <a href="{{ route('sales.index') }}" class="btn btn-sm btn-primary">
+                    <i class="bi bi-arrow-left"></i> Back to List
+                </a>
+            </div>
         </div>
     </x-slot>
 
@@ -15,17 +20,17 @@
             <!-- Sale Information -->
             <div class="card mb-3">
                 <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0">Sale Information</h5>
+                    <h5 class="mb-0"><i class="bi bi-info-circle"></i> Sale Information</h5>
                 </div>
                 <div class="card-body">
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <strong>Reference No:</strong>
-                            <p>{{ $sale->reference_no }}</p>
+                            <p>{{ $sale->reference_number }}</p>
                         </div>
                         <div class="col-md-6 mb-3">
                             <strong>Date:</strong>
-                            <p>{{ $sale->sale_date ? $sale->sale_date->format('d M Y') : 'N/A' }}</p>
+                            <p>{{ $sale->sale_date ? \Carbon\Carbon::parse($sale->sale_date)->format('d M Y') : 'N/A' }}</p>
                         </div>
                         <div class="col-md-6 mb-3">
                             <strong>Customer:</strong>
@@ -33,7 +38,7 @@
                         </div>
                         <div class="col-md-6 mb-3">
                             <strong>Biller:</strong>
-                            <p>{{ optional($sale->biller)->name ?? 'N/A' }}</p>
+                            <p>{{ $sale->biller ?? 'N/A' }}</p>
                         </div>
                         <div class="col-md-6 mb-3">
                             <strong>Warehouse:</strong>
@@ -42,7 +47,7 @@
                         <div class="col-md-6 mb-3">
                             <strong>Status:</strong>
                             <p>
-                                @if($sale->status === 'completed')
+                                @if($sale->sale_status === 'completed')
                                 <span class="badge bg-success">Completed</span>
                                 @else
                                 <span class="badge bg-warning">Pending</span>
@@ -61,40 +66,64 @@
 
             <!-- Sale Items -->
             <div class="card">
-                <div class="card-header bg-secondary text-white">
-                    <h5 class="mb-0">Sale Items</h5>
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="bi bi-cart3"></i> Sale Items</h5>
                 </div>
                 <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-bordered">
-                            <thead>
-                                <tr>
-                                    <th>Product</th>
-                                    <th>Quantity</th>
-                                    <th>Unit Price</th>
-                                    <th>Discount</th>
-                                    <th>Tax</th>
-                                    <th>Subtotal</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @forelse($sale->items as $item)
-                                <tr>
-                                    <td>{{ optional($item->product)->name ?? 'N/A' }}</td>
-                                    <td>{{ $item->quantity }}</td>
-                                    <td>${{ number_format($item->unit_price, 2) }}</td>
-                                    <td>${{ number_format($item->discount ?? 0, 2) }}</td>
-                                    <td>${{ number_format($item->tax ?? 0, 2) }}</td>
-                                    <td>${{ number_format(($item->quantity * $item->unit_price) - ($item->discount ?? 0) + ($item->tax ?? 0), 2) }}</td>
-                                </tr>
-                                @empty
-                                <tr>
-                                    <td colspan="6" class="text-center">No items found</td>
-                                </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
-                    </div>
+                    @if($sale->items && count($sale->items) > 0)
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th width="50" class="text-center">#</th>
+                                        <th>Product</th>
+                                        <th width="120" class="text-center">Quantity</th>
+                                        <th width="150" class="text-end">Unit Price</th>
+                                        <th width="150" class="text-end">Subtotal</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($sale->items as $index => $item)
+                                    <tr>
+                                        <td class="text-center">{{ $index + 1 }}</td>
+                                        <td>
+                                            <strong>{{ optional($item->product)->name ?? 'N/A' }}</strong>
+                                            @if($item->product && $item->product->product_code)
+                                                <br><small class="text-muted">Code: {{ $item->product->product_code }}</small>
+                                            @endif
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge bg-primary fs-6">{{ number_format($item->quantity, 0) }}</span>
+                                        </td>
+                                        <td class="text-end">
+                                            <strong>৳{{ number_format($item->unit_price ?? $item->price ?? 0, 2) }}</strong>
+                                        </td>
+                                        <td class="text-end">
+                                            <strong class="text-primary fs-6">
+                                                ৳{{ number_format($item->quantity * ($item->unit_price ?? $item->price ?? 0), 2) }}
+                                            </strong>
+                                        </td>
+                                    </tr>
+                                    @endforeach
+                                </tbody>
+                                <tfoot class="table-light">
+                                    <tr>
+                                        <td colspan="4" class="text-end"><strong>Total Amount:</strong></td>
+                                        <td class="text-end">
+                                            <strong class="text-primary fs-5">
+                                                ৳{{ number_format($sale->grand_total ?? 0, 2) }}
+                                            </strong>
+                                        </td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    @else
+                        <div class="text-center text-muted py-4">
+                            <i class="bi bi-inbox fs-1"></i>
+                            <p class="mb-0">No items found in this sale</p>
+                        </div>
+                    @endif
                 </div>
             </div>
         </div>
@@ -102,41 +131,65 @@
         <div class="col-md-4">
             <!-- Payment Summary -->
             <div class="card mb-3">
-                <div class="card-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
-                    <h5 class="mb-0">Payment Summary</h5>
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="bi bi-calculator"></i> Payment Summary</h5>
                 </div>
                 <div class="card-body">
+                    @php
+                        // Calculate subtotal from items
+                        $itemsSubtotal = 0;
+                        foreach($sale->items as $item) {
+                            $itemsSubtotal += $item->quantity * ($item->unit_price ?? $item->price ?? 0);
+                        }
+                        
+                        // If no items, fallback calculation
+                        if($itemsSubtotal == 0) {
+                            $itemsSubtotal = ($sale->grand_total ?? 0) - ($sale->tax_amount ?? 0) + ($sale->discount_amount ?? 0) - ($sale->shipping_cost ?? 0);
+                        }
+                    @endphp
+                    
                     <div class="d-flex justify-content-between mb-2">
                         <span>Subtotal:</span>
-                        <strong>${{ number_format(($sale->grand_total ?? 0) - ($sale->tax_amount ?? 0) + ($sale->discount_amount ?? 0), 2) }}</strong>
+                        <strong>৳{{ number_format($itemsSubtotal, 2) }}</strong>
                     </div>
+                    
                     <div class="d-flex justify-content-between mb-2">
-                        <span>Tax ({{ $sale->tax_percentage ?? 0 }}%):</span>
-                        <strong>${{ number_format($sale->tax_amount ?? 0, 2) }}</strong>
+                        <span>Tax @if(($sale->tax_percentage ?? 0) > 0)({{ number_format($sale->tax_percentage, 2) }}%)@endif:</span>
+                        <strong class="text-success">৳{{ number_format($sale->tax_amount ?? 0, 2) }}</strong>
                     </div>
+                    
                     <div class="d-flex justify-content-between mb-2">
                         <span>Discount:</span>
-                        <strong>-${{ number_format($sale->discount_amount ?? 0, 2) }}</strong>
+                        <strong class="text-danger">-৳{{ number_format($sale->discount_amount ?? 0, 2) }}</strong>
                     </div>
+                    
+                    @if(($sale->shipping_cost ?? 0) > 0)
                     <div class="d-flex justify-content-between mb-2">
                         <span>Shipping:</span>
-                        <strong>${{ number_format($sale->shipping_cost ?? 0, 2) }}</strong>
+                        <strong>৳{{ number_format($sale->shipping_cost, 2) }}</strong>
                     </div>
+                    @endif
+                    
                     <hr>
+                    
                     <div class="d-flex justify-content-between mb-3">
                         <strong>Grand Total:</strong>
-                        <strong class="text-primary" style="font-size: 20px;">${{ number_format($sale->grand_total ?? 0, 2) }}</strong>
+                        <strong class="text-primary fs-5">৳{{ number_format($sale->grand_total ?? 0, 2) }}</strong>
                     </div>
+                    
                     <hr>
+                    
                     <div class="d-flex justify-content-between mb-2">
                         <span>Paid Amount:</span>
-                        <strong class="text-success">${{ number_format($sale->paid_amount ?? 0, 2) }}</strong>
+                        <strong class="text-success">৳{{ number_format($sale->paid_amount ?? 0, 2) }}</strong>
                     </div>
                     <div class="d-flex justify-content-between mb-2">
                         <span>Due Amount:</span>
-                        <strong class="text-danger">${{ number_format($sale->due_amount ?? 0, 2) }}</strong>
+                        <strong class="text-danger">৳{{ number_format($sale->due_amount ?? 0, 2) }}</strong>
                     </div>
+                    
                     <hr>
+                    
                     <div class="d-flex justify-content-between mb-2">
                         <span>Payment Method:</span>
                         <strong>{{ ucfirst($sale->payment_method ?? 'N/A') }}</strong>
@@ -156,19 +209,41 @@
                 </div>
             </div>
 
+            @if($sale->payment_method)
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="bi bi-credit-card"></i> Payment Info</h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-2">
+                        <strong>Payment Method:</strong>
+                        <p class="mb-0">{{ ucfirst($sale->payment_method) }}</p>
+                    </div>
+                    @if($sale->account)
+                    <div>
+                        <strong>Account:</strong>
+                        <p class="mb-0">{{ $sale->account->account_name }}</p>
+                    </div>
+                    @endif
+                </div>
+            </div>
+            @endif
+
             <!-- Actions -->
             <div class="card">
                 <div class="card-body">
-                    <a href="{{ route('sales.edit', $sale->id) }}" class="btn btn-warning w-100 mb-2">
-                        <i class="bi bi-pencil"></i> Edit Sale
-                    </a>
-                    <form action="{{ route('sales.destroy', $sale->id) }}" method="POST" onsubmit="return confirm('Are you sure?')">
-                        @csrf
-                        @method('DELETE')
-                        <button type="submit" class="btn btn-danger w-100">
-                            <i class="bi bi-trash"></i> Delete Sale
-                        </button>
-                    </form>
+                    <div class="d-grid gap-2">
+                        <a href="{{ route('sales.edit', $sale->id) }}" class="btn btn-warning">
+                            <i class="bi bi-pencil"></i> Edit Sale
+                        </a>
+                        <form action="{{ route('sales.destroy', $sale->id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this sale?')">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="btn btn-danger w-100">
+                                <i class="bi bi-trash"></i> Delete Sale
+                            </button>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>

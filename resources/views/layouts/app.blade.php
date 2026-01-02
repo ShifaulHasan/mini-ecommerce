@@ -96,7 +96,9 @@
         <div class="collapse" id="productMenu">
             <a class="nav-link text-white-50 ms-4" href="{{ route('products.index') }}">Product List</a>
             <a class="nav-link text-white-50 ms-4" href="{{ route('adjustments.index') }}">Adjustment List</a>
+            @can('create adjustments')
             <a class="nav-link text-white-50 ms-4" href="{{ route('adjustments.create') }}">Add Adjustment</a>
+            @endcan
         </div>
         @endcan
 
@@ -108,7 +110,9 @@
         </a>
         <div class="collapse" id="purchaseMenu">
             <a class="nav-link text-white-50 ms-4" href="{{ route('purchases.index') }}">Purchase List</a>
+            @can('create purchases')
             <a class="nav-link text-white-50 ms-4" href="{{ route('purchases.create') }}">Add Purchase</a>
+            @endcan
         </div>
         @endcan
 
@@ -120,10 +124,14 @@
         </a>
         <div class="collapse" id="saleMenu">
             <a class="nav-link text-white-50 ms-4" href="{{ route('sales.index') }}">Sale List</a>
+            @can('create sales')
             <a class="nav-link text-white-50 ms-4" href="{{ route('sales.create') }}">Add Sale</a>
+            @endcan
+            @can('create pos')
             <a class="nav-link text-white-50 ms-4" href="{{ route('pos.index') }}">
                 <i class="bi bi-shop"></i> POS
             </a>
+            @endcan
         </div>
         @endcan
 
@@ -141,18 +149,22 @@
         @endcan
 
         <!-- People -->
-        @can('manage users')
+        @can('manage people')
         <a class="nav-link text-white" data-bs-toggle="collapse" href="#peopleMenu">
             <i class="bi bi-person-lines-fill"></i> People
             <i class="bi bi-chevron-down float-end"></i>
         </a>
         <div class="collapse" id="peopleMenu">
+            @can ('manage users')
             <a class="nav-link text-white-50 ms-4" href="{{ route('users.index') }}">User List</a>
             <a class="nav-link text-white-50 ms-4" href="{{ route('users.create') }}">Add User</a>
+            @endcan
+            @can('manage suppliers and customers')
             <a class="nav-link text-white-50 ms-4" href="{{ route('customers.index') }}">Customer List</a>
             <a class="nav-link text-white-50 ms-4" href="{{ route('customers.create') }}">Add Customer</a>
             <a class="nav-link text-white-50 ms-4" href="{{ route('suppliers.index') }}">Supplier List</a>
             <a class="nav-link text-white-50 ms-4" href="{{ route('suppliers.create') }}">Add Supplier</a>
+            @endcan
         </div>
         @endcan
 

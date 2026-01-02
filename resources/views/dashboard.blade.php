@@ -2,7 +2,9 @@
     <x-slot name="header">
         <div class="d-flex justify-content-between align-items-center">
             <h2 class="h4 fw-semibold text-dark">
+                
                 <i class="bi bi-speedometer2"></i> Dashboard
+                
             </h2>
             <div class="text-muted">{{ now()->format('l, F d, Y') }}</div>
         </div>
@@ -33,7 +35,7 @@
                     <div class="card-body">
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
-                                <h6 class="fw-bold opacity-75 mb-1">Total Payment</h6>
+                                <h6 class="fw-bold opacity-75 mb-1">Sale Payment</h6>
                                 <h3 class="fw-bold mb-0">৳{{ number_format($totalPayment, 2) }}</h3>
                             </div>
                             <div>
@@ -49,7 +51,7 @@
                     <div class="card-body">
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
-                                <h6 class="fw-bold opacity-75 mb-1">Total Due</h6>
+                                <h6 class="fw-bold opacity-75 mb-1">Total Sale Due</h6>
                                 <h3 class="fw-bold mb-0">৳{{ number_format($totalDue, 2) }}</h3>
                             </div>
                             <div>
@@ -187,7 +189,7 @@
             <div class="col-md-6">
                 <div class="card shadow-sm border-0">
                     <div class="card-header bg-white fw-bold d-flex justify-content-between align-items-center">
-                        <span><i class="bi bi-clock-history"></i> Recent Transactions</span>
+                        <span><i class="bi bi-clock-history"></i> Recent Sale Transactions</span>
                         <a href="{{ route('reports.sales') }}" class="badge bg-primary text-decoration-none">
                             View All <i class="bi bi-arrow-right"></i>
                         </a>
@@ -232,6 +234,18 @@
         </div>
 
     </div>
+       </div> 
+
+    <!-- Footer Note -->
+    <div class="row mt-4 mb-3">
+        <div class="col-12">
+            <p class="text-center text-muted small mb-0">
+                Developed by Shifaul Hasan &copy; 2026
+            </p>
+        </div>
+    </div>
+
+</div>
 
     <!-- CHART JS -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -446,5 +460,5 @@
             }
         });
     </script>
-
+    
 </x-app-layout>

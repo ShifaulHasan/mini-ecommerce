@@ -52,6 +52,7 @@ class User extends Authenticatable
      * Available roles (legacy - will be replaced by Spatie)
      */
     public const ROLES = [
+        'Superadmin',
         'Admin',
         'User',
         'Employee',
@@ -60,6 +61,7 @@ class User extends Authenticatable
         'Supplier',
         'Customer',
         'Biller',
+        'Stuff',
     ];
 
     /**

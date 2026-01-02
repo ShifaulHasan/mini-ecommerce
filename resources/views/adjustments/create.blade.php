@@ -1,8 +1,12 @@
+
 <x-app-layout>
     <x-slot name="header">
         <h2 class="h4 fw-semibold text-dark">
+            
             <i class="bi bi-plus-circle"></i> Add Stock Adjustment
+          
         </h2>
+
     </x-slot>
 
     <div class="d-flex justify-content-between align-items-center mb-3">
@@ -181,4 +185,19 @@
             }
         }
     </script>
+
+        </div> 
+
+    <!-- Footer Note -->
+    <div class="row mt-4 mb-3">
+        <div class="col-12">
+            <p class="text-center text-muted small mb-0">
+                Developed by Shifaul Hasan &copy; 2026
+            </p>
+        </div>
+    </div>
+
+</div>
 </x-app-layout>
+
+
