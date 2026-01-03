@@ -10,6 +10,10 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
 
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.bootstrap5.min.css">
+
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
     <style>
@@ -58,6 +62,16 @@
             border-bottom: 1px solid #ddd;
             padding: 15px 25px;
             z-index: 100;
+        }
+        
+        /* DataTable Button Styling */
+        .dt-buttons {
+            margin-bottom: 15px;
+        }
+        .dt-button {
+            margin-right: 5px !important;
+            padding: 5px 10px !important;
+            font-size: 14px !important;
         }
     </style>
 </head>
@@ -216,39 +230,26 @@
         @endcan
 
         <!-- Settings -->
-@can('manage settings')
-<a class="nav-link text-white" data-bs-toggle="collapse" href="#settingsMenu">
-    <i class="bi bi-gear"></i> Settings
-    <i class="bi bi-chevron-down float-end"></i>
-</a>
-<div class="collapse" id="settingsMenu">
-    <a class="nav-link text-white-50 ms-4" href="{{ route('user.roles') }}">
-        User Role Management
-    </a>
-    <a class="nav-link text-white-50 ms-4" href="{{ route('roles.index') }}">
-         Role Permission
-    </a>
-    <a class="nav-link text-white-50 ms-4" href="{{ route('permissions.index') }}">
-        Permission Management
-    </a>
-    <a class="nav-link text-white-50 ms-4" href="{{ route('settings.general') }}">
-         General Setting
-    </a>
-    <!-- Commented routes - uncomment when ready -->
-    <!-- <a class="nav-link text-white-50 ms-4" href="{{ route('settings.mail') }}">
-        <i class="bi bi-envelope"></i> Mail Setting
-    </a>
-    <a class="nav-link text-white-50 ms-4" href="{{ route('settings.sms') }}">
-        <i class="bi bi-chat-dots"></i> SMS Setting
-    </a>
-    <a class="nav-link text-white-50 ms-4" href="{{ route('settings.pos') }}">
-        <i class="bi bi-shop"></i> POS Setting
-    </a>
-    <a class="nav-link text-white-50 ms-4" href="{{ route('settings.ecommerce') }}">
-        <i class="bi bi-cart"></i> E-commerce Setting
-    </a> -->
-</div>
-@endcan
+        @can('manage settings')
+        <a class="nav-link text-white" data-bs-toggle="collapse" href="#settingsMenu">
+            <i class="bi bi-gear"></i> Settings
+            <i class="bi bi-chevron-down float-end"></i>
+        </a>
+        <div class="collapse" id="settingsMenu">
+            <a class="nav-link text-white-50 ms-4" href="{{ route('user.roles') }}">
+                User Role Management
+            </a>
+            <a class="nav-link text-white-50 ms-4" href="{{ route('roles.index') }}">
+                 Role Permission
+            </a>
+            <a class="nav-link text-white-50 ms-4" href="{{ route('permissions.index') }}">
+                Permission Management
+            </a>
+            <a class="nav-link text-white-50 ms-4" href="{{ route('settings.general') }}">
+                 General Setting
+            </a>
+        </div>
+        @endcan
 
     </div>
     <!-- END Sidebar -->
@@ -277,7 +278,31 @@
         </div>
     </div>
 
+    <!-- jQuery (Required for DataTables) - IMPORTANT: Load First -->
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- DataTables Core JS -->
+    <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+    
+    <!-- DataTables Buttons Extension -->
+    <script src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.bootstrap5.min.js"></script>
+    
+    <!-- JSZip for Excel Export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    
+    <!-- PDFMake for PDF Export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
+    
+    <!-- Buttons HTML5 Export -->
+    <script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.html5.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.print.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.colVis.min.js"></script>
+
 </body>
 </html>

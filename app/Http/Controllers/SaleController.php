@@ -31,7 +31,6 @@ class SaleController extends Controller
         $products   = Product::all();
         $warehouses = Warehouse::all();
         
-        // Get customers from BOTH sources
         $customers = collect();
         
         try {
@@ -99,6 +98,10 @@ class SaleController extends Controller
             'account_id'     => 'required|exists:accounts,id',
             'delivery_status' => 'nullable|in:pending,processing,delivered,cancelled',
 
+            'subtotal'       => 'nullable|numeric|min:0',
+            'tax_amount'     => 'nullable|numeric|min:0',
+            'discount_amount'=> 'nullable|numeric|min:0',
+            'shipping_amount'=> 'nullable|numeric|min:0',
             'grand_total'    => 'required|numeric|min:0',
             'amount_paid'    => 'nullable|numeric|min:0',
 
@@ -112,7 +115,6 @@ class SaleController extends Controller
             'items.*.tax'            => 'nullable|numeric|min:0',
         ]);
 
-        // Parse and verify customer_id
         $customerId = null;
         $customerRecord = null;
         
@@ -138,7 +140,6 @@ class SaleController extends Controller
                     ], 422);
                 }
                 
-                // Find or create customer record for this user
                 $customerRecord = Customer::where('user_id', $userId)->first();
                 
                 if (!$customerRecord) {
@@ -185,7 +186,6 @@ class SaleController extends Controller
                 STR_PAD_LEFT
             );
 
-            // CREATE SALE
             $sale = Sale::create([
                 'reference_number' => $referenceNumber,
                 'sale_date'        => $validated['sale_date'],
@@ -199,9 +199,15 @@ class SaleController extends Controller
                 'account_id'       => $validated['account_id'],
                 'delivery_status'  => $deliveryStatus,
 
+                'subtotal'         => $validated['subtotal'] ?? 0,
+                'tax_amount'       => $validated['tax_amount'] ?? 0,
+                'discount_amount'  => $validated['discount_amount'] ?? 0,
+                'shipping_amount'  => $validated['shipping_amount'] ?? 0,
                 'grand_total'      => $validated['grand_total'],
                 'paid_amount'      => $paidAmount,
+                'amount_paid'      => $paidAmount,
                 'due_amount'       => $dueAmount,
+                'amount_due'       => $dueAmount,
 
                 'notes'            => $validated['notes'] ?? null,
                 'created_by'       => auth()->id(),
@@ -216,7 +222,6 @@ class SaleController extends Controller
                 'due_amount' => $dueAmount,
             ]);
 
-            // SALE ITEMS + STOCK UPDATE
             foreach ($validated['items'] as $item) {
                 $subtotal = ($item['quantity'] * $item['unit_price'])
                     - ($item['discount'] ?? 0)
@@ -247,7 +252,6 @@ class SaleController extends Controller
                 }
             }
 
-            // 🔥🔥🔥 SYNC CUSTOMER TOTAL_DUE (SINGLE SOURCE OF TRUTH)
             if ($customerRecord) {
                 $customerRecord->syncTotalDue();
                 
@@ -258,7 +262,6 @@ class SaleController extends Controller
                 ]);
             }
 
-            // UPDATE ACCOUNT BALANCE & CREATE TRANSACTION
             if ($paidAmount > 0 && !empty($validated['account_id'])) {
                 $account = \App\Models\Account::lockForUpdate()->find($validated['account_id']);
                 
@@ -387,7 +390,6 @@ class SaleController extends Controller
             
             $sale->update($validated);
 
-            // 🔥 Sync due for both old and new customer if changed
             if ($oldCustomerId && $oldCustomerId != $sale->customer_id) {
                 $oldCustomer = Customer::find($oldCustomerId);
                 if ($oldCustomer) {
@@ -422,7 +424,6 @@ class SaleController extends Controller
         try {
             $customerId = $sale->customer_id;
 
-            // Restore stock if sale was completed
             if ($sale->sale_status === 'completed') {
                 foreach ($sale->items as $item) {
                     Product::where('id', $item->product_id)
@@ -430,7 +431,6 @@ class SaleController extends Controller
                 }
             }
 
-            // Reverse account transaction
             if ($sale->paid_amount > 0 && $sale->account_id) {
                 $account = \App\Models\Account::lockForUpdate()->find($sale->account_id);
                 if ($account) {
@@ -455,7 +455,6 @@ class SaleController extends Controller
 
             $sale->delete();
 
-            // 🔥 Sync customer due after deletion
             if ($customerId) {
                 $customer = Customer::find($customerId);
                 if ($customer) {

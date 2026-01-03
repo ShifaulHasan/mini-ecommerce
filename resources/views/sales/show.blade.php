@@ -4,10 +4,10 @@
             <h2 class="h5 fw-semibold mb-0">
                 <i class="bi bi-receipt"></i> Sale Details
             </h2>
-            <div class="d-flex gap-2">
+            <!-- <div class="d-flex gap-2">
                 <button onclick="window.print()" class="btn btn-sm btn-secondary">
                     <i class="bi bi-printer"></i> Print
-                </button>
+                </button> -->
                 <a href="{{ route('sales.index') }}" class="btn btn-sm btn-primary">
                     <i class="bi bi-arrow-left"></i> Back to List
                 </a>
@@ -142,33 +142,40 @@
                             $itemsSubtotal += $item->quantity * ($item->unit_price ?? $item->price ?? 0);
                         }
                         
-                        // If no items, fallback calculation
-                        if($itemsSubtotal == 0) {
-                            $itemsSubtotal = ($sale->grand_total ?? 0) - ($sale->tax_amount ?? 0) + ($sale->discount_amount ?? 0) - ($sale->shipping_cost ?? 0);
+                        // Use database subtotal if available, otherwise use calculated
+                        $subtotal = ($sale->subtotal && $sale->subtotal > 0) ? $sale->subtotal : $itemsSubtotal;
+                        
+                        // Get values from database (default to 0)
+                        $taxAmount = $sale->tax_amount ?? 0;
+                        $discountAmount = $sale->discount_amount ?? 0;
+                        $shippingAmount = $sale->shipping_amount ?? 0;
+                        
+                        // Calculate tax percentage if tax exists
+                        $taxPercentage = 0;
+                        if ($subtotal > 0 && $taxAmount > 0) {
+                            $taxPercentage = ($taxAmount / $subtotal) * 100;
                         }
                     @endphp
                     
                     <div class="d-flex justify-content-between mb-2">
                         <span>Subtotal:</span>
-                        <strong>৳{{ number_format($itemsSubtotal, 2) }}</strong>
+                        <strong>৳{{ number_format($subtotal, 2) }}</strong>
                     </div>
-                    
+                   
                     <div class="d-flex justify-content-between mb-2">
-                        <span>Tax @if(($sale->tax_percentage ?? 0) > 0)({{ number_format($sale->tax_percentage, 2) }}%)@endif:</span>
-                        <strong class="text-success">৳{{ number_format($sale->tax_amount ?? 0, 2) }}</strong>
+                        <span>Tax @if($taxPercentage > 0)({{ number_format($taxPercentage, 2) }}%)@endif:</span>
+                        <strong class="text-success">৳{{ number_format($taxAmount, 2) }}</strong>
                     </div>
                     
                     <div class="d-flex justify-content-between mb-2">
                         <span>Discount:</span>
-                        <strong class="text-danger">-৳{{ number_format($sale->discount_amount ?? 0, 2) }}</strong>
+                        <strong class="text-danger">-৳{{ number_format($discountAmount, 2) }}</strong>
                     </div>
                     
-                    @if(($sale->shipping_cost ?? 0) > 0)
                     <div class="d-flex justify-content-between mb-2">
                         <span>Shipping:</span>
-                        <strong>৳{{ number_format($sale->shipping_cost, 2) }}</strong>
+                        <strong>৳{{ number_format($shippingAmount, 2) }}</strong>
                     </div>
-                    @endif
                     
                     <hr>
                     
@@ -219,12 +226,12 @@
                         <strong>Payment Method:</strong>
                         <p class="mb-0">{{ ucfirst($sale->payment_method) }}</p>
                     </div>
-                    @if($sale->account)
+                    <!-- @if($sale->account)
                     <div>
                         <strong>Account:</strong>
                         <p class="mb-0">{{ $sale->account->account_name }}</p>
                     </div>
-                    @endif
+                    @endif -->
                 </div>
             </div>
             @endif

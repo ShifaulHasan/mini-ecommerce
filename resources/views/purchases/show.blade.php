@@ -3,9 +3,9 @@
         <div class="d-flex justify-content-between align-items-center">
             <h2 class="h4 fw-semibold mb-0">Purchase Details</h2>
             <div class="d-flex gap-2">
-                <button onclick="window.print()" class="btn btn-sm btn-secondary">
+                <!-- <button onclick="window.print()" class="btn btn-sm btn-secondary">
                     <i class="bi bi-printer"></i> Print
-                </button>
+                </button> -->
                 <a href="{{ route('purchases.index') }}" class="btn btn-sm btn-primary">
                     <i class="bi bi-arrow-left"></i> Back to List
                 </a>

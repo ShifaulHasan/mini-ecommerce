@@ -27,7 +27,6 @@ class ReportController extends Controller
             WHERE p.status = 'active'
         ";
         
-        // Add filters
         $params = [];
         if ($request->filled('category_id')) {
             $query .= " AND p.category_id = ?";
@@ -39,10 +38,8 @@ class ReportController extends Controller
         }
         
         $query .= " ORDER BY p.name ASC";
-        
         $products = DB::select($query, $params);
         
-        // Get filter options
         $categories = DB::select("SELECT id, name FROM categories ORDER BY name");
         $brands = DB::select("SELECT id, name FROM brands ORDER BY name");
         
@@ -59,6 +56,8 @@ class ReportController extends Controller
                 s.sale_date,
                 COALESCE(c.name, 'Walk-In Customer') as customer_name,
                 s.grand_total,
+                s.tax_amount,
+                s.discount_amount,
                 s.paid_amount,
                 s.due_amount,
                 s.sale_status,
@@ -71,8 +70,6 @@ class ReportController extends Controller
         ";
         
         $params = [];
-        
-        // Date filter
         if ($request->filled('start_date')) {
             $query .= " AND s.sale_date >= ?";
             $params[] = $request->start_date;
@@ -81,31 +78,27 @@ class ReportController extends Controller
             $query .= " AND s.sale_date <= ?";
             $params[] = $request->end_date;
         }
-        
-        // Customer filter
         if ($request->filled('customer_id')) {
             $query .= " AND s.customer_id = ?";
             $params[] = $request->customer_id;
         }
-        
-        // Payment status filter
         if ($request->filled('payment_status')) {
             $query .= " AND s.payment_status = ?";
             $params[] = $request->payment_status;
         }
-        
+
         $query .= " ORDER BY s.sale_date DESC, s.id DESC";
-        
         $sales = DB::select($query, $params);
-        
+
         // Calculate totals
         $totals = [
             'total_sales' => array_sum(array_column($sales, 'grand_total')),
+            'total_tax' => array_sum(array_column($sales, 'tax_amount')),
+            'total_discount' => array_sum(array_column($sales, 'discount_amount')),
             'total_paid' => array_sum(array_column($sales, 'paid_amount')),
             'total_due' => array_sum(array_column($sales, 'due_amount'))
         ];
-        
-        // Get filter options
+
         $customers = DB::select("SELECT id, name FROM customers WHERE status = 'active' ORDER BY name");
         
         return view('reports.sales', compact('sales', 'totals', 'customers'));
@@ -133,8 +126,6 @@ class ReportController extends Controller
         ";
         
         $params = [];
-        
-        // Date filter
         if ($request->filled('start_date')) {
             $query .= " AND p.purchase_date >= ?";
             $params[] = $request->start_date;
@@ -143,31 +134,24 @@ class ReportController extends Controller
             $query .= " AND p.purchase_date <= ?";
             $params[] = $request->end_date;
         }
-        
-        // Supplier filter
         if ($request->filled('supplier_id')) {
             $query .= " AND p.supplier_id = ?";
             $params[] = $request->supplier_id;
         }
-        
-        // Payment status filter
         if ($request->filled('payment_status')) {
             $query .= " AND p.payment_status = ?";
             $params[] = $request->payment_status;
         }
-        
+
         $query .= " ORDER BY p.purchase_date DESC, p.id DESC";
-        
         $purchases = DB::select($query, $params);
-        
-        // Calculate totals
+
         $totals = [
             'total_purchases' => array_sum(array_column($purchases, 'grand_total')),
             'total_paid' => array_sum(array_column($purchases, 'paid_amount')),
             'total_due' => array_sum(array_column($purchases, 'due_amount'))
         ];
-        
-        // Get filter options
+
         $suppliers = DB::select("SELECT id, name FROM suppliers WHERE status = 'active' ORDER BY name");
         
         return view('reports.purchases', compact('purchases', 'totals', 'suppliers'));
@@ -197,8 +181,6 @@ class ReportController extends Controller
         ";
         
         $params = [];
-        
-        // Date filter
         if ($request->filled('start_date')) {
             $query .= " AND DATE(a.created_at) >= ?";
             $params[] = $request->start_date;
@@ -207,24 +189,18 @@ class ReportController extends Controller
             $query .= " AND DATE(a.created_at) <= ?";
             $params[] = $request->end_date;
         }
-        
-        // Product filter
         if ($request->filled('product_id')) {
             $query .= " AND a.product_id = ?";
             $params[] = $request->product_id;
         }
-        
-        // Adjustment type filter
         if ($request->filled('adjustment_type')) {
             $query .= " AND a.adjustment_type = ?";
             $params[] = $request->adjustment_type;
         }
-        
+
         $query .= " ORDER BY a.created_at DESC";
-        
         $adjustments = DB::select($query, $params);
-        
-        // Get filter options
+
         $products = DB::select("SELECT id, name FROM products WHERE status = 'active' ORDER BY name");
         
         return view('reports.adjustments', compact('adjustments', 'products'));
@@ -252,8 +228,6 @@ class ReportController extends Controller
         ";
         
         $params = [];
-        
-        // Date filter
         if ($request->filled('start_date')) {
             $query .= " AND at.transaction_date >= ?";
             $params[] = $request->start_date;
@@ -262,24 +236,18 @@ class ReportController extends Controller
             $query .= " AND at.transaction_date <= ?";
             $params[] = $request->end_date;
         }
-        
-        // Account filter
         if ($request->filled('account_id')) {
             $query .= " AND at.account_id = ?";
             $params[] = $request->account_id;
         }
-        
-        // Transaction type filter
         if ($request->filled('transaction_type')) {
             $query .= " AND at.transaction_type = ?";
             $params[] = $request->transaction_type;
         }
-        
+
         $query .= " ORDER BY at.transaction_date DESC, at.id DESC";
-        
         $payments = DB::select($query, $params);
-        
-        // Calculate totals
+
         $totalCredit = 0;
         $totalDebit = 0;
         foreach ($payments as $payment) {
@@ -289,14 +257,13 @@ class ReportController extends Controller
                 $totalDebit += $payment->amount;
             }
         }
-        
+
         $totals = [
             'total_credit' => $totalCredit,
             'total_debit' => $totalDebit,
             'net_balance' => $totalCredit - $totalDebit
         ];
-        
-        // Get filter options
+
         $accounts = DB::select("SELECT id, name FROM accounts WHERE status = 'active' ORDER BY name");
         
         return view('reports.payments', compact('payments', 'totals', 'accounts'));
@@ -323,8 +290,6 @@ class ReportController extends Controller
         ";
         
         $params = [];
-        
-        // Name filter
         if ($request->filled('search')) {
             $query .= " AND (c.name LIKE ? OR c.customer_code LIKE ? OR c.phone LIKE ?)";
             $search = '%' . $request->search . '%';
@@ -332,19 +297,17 @@ class ReportController extends Controller
             $params[] = $search;
             $params[] = $search;
         }
-        
+
         $query .= " GROUP BY c.id, c.customer_code, c.name, c.email, c.phone, c.city";
         $query .= " ORDER BY total_sales DESC";
-        
         $customers = DB::select($query, $params);
-        
-        // Calculate grand totals
+
         $totals = [
             'total_sales' => array_sum(array_column($customers, 'total_sales')),
             'total_paid' => array_sum(array_column($customers, 'total_paid')),
             'total_due' => array_sum(array_column($customers, 'total_due'))
         ];
-        
+
         return view('reports.customers', compact('customers', 'totals'));
     }
 
@@ -369,8 +332,6 @@ class ReportController extends Controller
         ";
         
         $params = [];
-        
-        // Name filter
         if ($request->filled('search')) {
             $query .= " AND (s.name LIKE ? OR s.company LIKE ? OR s.phone LIKE ?)";
             $search = '%' . $request->search . '%';
@@ -378,19 +339,17 @@ class ReportController extends Controller
             $params[] = $search;
             $params[] = $search;
         }
-        
+
         $query .= " GROUP BY s.id, s.name, s.email, s.phone, s.city, s.company";
         $query .= " ORDER BY total_purchases DESC";
-        
         $suppliers = DB::select($query, $params);
-        
-        // Calculate grand totals
+
         $totals = [
             'total_purchases' => array_sum(array_column($suppliers, 'total_purchases')),
             'total_paid' => array_sum(array_column($suppliers, 'total_paid')),
             'total_due' => array_sum(array_column($suppliers, 'total_due'))
         ];
-        
+
         return view('reports.suppliers', compact('suppliers', 'totals'));
     }
 }

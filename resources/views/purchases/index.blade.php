@@ -89,11 +89,11 @@
                     </form>
                 </div>
 
-                <div class="col-md-8 text-end">
+                <!-- <div class="col-md-8 text-end">
                     <button class="btn btn-outline-secondary btn-sm" onclick="window.print()">
                         <i class="bi bi-printer"></i> Print
                     </button>
-                </div>
+                </div> -->
             </div>
 
             <div class="table-responsive">

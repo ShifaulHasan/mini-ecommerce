@@ -194,9 +194,9 @@
                         <a href="{{ route('customers.create') }}" class="btn-add">
                             <i class="bi bi-plus-circle"></i> Add Customer
                         </a>
-                        <button class="btn-import" onclick="alert('Import feature coming soon!')">
+                        <!-- <button class="btn-import" onclick="alert('Import feature coming soon!')">
                             <i class="bi bi-upload"></i> Import Customer
-                        </button>
+                        </button> -->
                     </div>
                 </div>
 

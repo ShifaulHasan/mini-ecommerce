@@ -470,7 +470,7 @@
         </div>
     </div>
 
- <script>
+<script>
 let orderItems = [];
 let itemCounter = 0;
 
@@ -545,7 +545,7 @@ function renderOrderTable() {
                 <input type="number" class="form-control form-control-sm" step="any" value="${item.tax}" 
                        onchange="updateTax(${item.id}, this.value)">
             </td>
-            <td><strong>$${calculateItemSubtotal(item).toFixed(2)}</strong></td>
+            <td><strong>৳${calculateItemSubtotal(item).toFixed(2)}</strong></td>
             <td>
                 <i class="bi bi-trash delete-btn" onclick="removeItem(${item.id})"></i>
             </td>
@@ -609,7 +609,8 @@ function calculateTotal() {
     const orderDiscountInput = document.getElementById('orderDiscount');
     const shippingCostInput = document.getElementById('shippingCost');
     
-    const orderTax = (subtotal * (parseFloat(orderTaxInput ? orderTaxInput.value : 0) || 0)) / 100;
+    const orderTaxPercentage = parseFloat(orderTaxInput ? orderTaxInput.value : 0) || 0;
+    const orderTax = (subtotal * orderTaxPercentage) / 100;
     const orderDiscount = parseFloat(orderDiscountInput ? orderDiscountInput.value : 0) || 0;
     const shipping = parseFloat(shippingCostInput ? shippingCostInput.value : 0) || 0;
     const grandTotal = subtotal + orderTax - orderDiscount + shipping;
@@ -689,7 +690,6 @@ function completeSale(event) {
         return;
     }
 
-    // 🔥 NEW: Validate account
     const accountId = parseInt(document.getElementById('accountSelectSale').value);
     if (!accountId) {
         alert('Please select an account!');
@@ -715,10 +715,18 @@ function completeSale(event) {
     btn.disabled = true;
     btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Processing...';
     
-    // Calculate totals
-    const grandTotalEl = document.getElementById('displayGrandTotal');
-    const grandTotalText = grandTotalEl ? grandTotalEl.textContent : '৳0.00';
-    const grandTotal = parseFloat(grandTotalText.replace('৳', '').replace(/,/g, ''));
+    // ✅ Calculate all values properly
+    const subtotal = orderItems.reduce((sum, item) => sum + calculateItemSubtotal(item), 0);
+    
+    const orderTaxInput = document.getElementById('orderTax');
+    const orderDiscountInput = document.getElementById('orderDiscount');
+    const shippingCostInput = document.getElementById('shippingCost');
+    
+    const orderTaxPercentage = parseFloat(orderTaxInput ? orderTaxInput.value : 0) || 0;
+    const taxAmount = (subtotal * orderTaxPercentage) / 100;
+    const discountAmount = parseFloat(orderDiscountInput ? orderDiscountInput.value : 0) || 0;
+    const shippingAmount = parseFloat(shippingCostInput ? shippingCostInput.value : 0) || 0;
+    const grandTotal = subtotal + taxAmount - discountAmount + shippingAmount;
     
     const amountPayingInput = document.getElementById('amountPaying');
     const amountPaying = parseFloat(amountPayingInput ? amountPayingInput.value : 0) || 0;
@@ -743,9 +751,6 @@ function completeSale(event) {
     const saleStatusSelect = document.querySelector('select[name="sale_status"]');
     const deliveryStatusSelect = document.getElementById('deliveryStatus');
     const notesTextarea = document.querySelector('textarea[name="notes"]');
-    const orderTaxInput = document.getElementById('orderTax');
-    const orderDiscountInput = document.getElementById('orderDiscount');
-    const shippingCostInput = document.getElementById('shippingCost');
     
     // Prepare items array
     const items = orderItems.map(item => ({
@@ -756,7 +761,7 @@ function completeSale(event) {
         tax: item.tax || 0
     }));
     
-    // Prepare data object
+    // ✅ Prepare data object with ALL required fields
     const data = {
         sale_date: saleDateInput ? saleDateInput.value : new Date().toISOString().split('T')[0],
         warehouse_id: warehouseSelect.value,
@@ -765,13 +770,16 @@ function completeSale(event) {
         delivery_status: deliveryStatusSelect ? deliveryStatusSelect.value : 'pending',
         payment_status: paymentStatus,
         payment_method: paymentMethod.value,
-        account_id: accountId, // 🔥 NEW
+        account_id: accountId,
+        
+        // ✅ CRITICAL: Send all amount fields
+        subtotal: subtotal,
+        tax_amount: taxAmount,
+        discount_amount: discountAmount,
+        shipping_amount: shippingAmount,
         grand_total: grandTotal,
         amount_paid: amountPaying,
-        due_amount: dueAmount,
-        tax_percentage: orderTaxInput ? (parseFloat(orderTaxInput.value) || 0) : 0,
-        discount_amount: orderDiscountInput ? (parseFloat(orderDiscountInput.value) || 0) : 0,
-        shipping_cost: shippingCostInput ? (parseFloat(shippingCostInput.value) || 0) : 0,
+        
         notes: notesTextarea ? notesTextarea.value : '',
         items: items
     };
@@ -826,8 +834,7 @@ function completeSale(event) {
         btn.innerHTML = originalText;
     });
 }
-    </script>
-
+</script>
         </div> 
 
     <!-- Footer Note -->

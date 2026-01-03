@@ -18,7 +18,7 @@ class Sale extends Model
         'reference_number',
 
         'sale_date',
-        'customer_id',     // 🔥 customers table ID
+        'customer_id',
         'warehouse_id',
         'account_id',
 
@@ -30,16 +30,23 @@ class Sale extends Model
         'delivery_status',
 
         // Amounts
+        'subtotal',
+        'tax_amount',
+        'discount_amount',
+        'shipping_amount',
         'grand_total',
         'returned_amount',
         'paid_amount',
+        'amount_paid',
         'due_amount',
+        'amount_due',
 
         // Currency
         'currency',
         'exchange_rate',
 
         // Others
+        'document',
         'notes',
         'created_by',
     ];
@@ -52,10 +59,16 @@ class Sale extends Model
     protected $casts = [
         'sale_date'       => 'date',
 
+        'subtotal'        => 'decimal:2',
+        'tax_amount'      => 'decimal:2',
+        'discount_amount' => 'decimal:2',
+        'shipping_amount' => 'decimal:2',
         'grand_total'     => 'decimal:2',
         'returned_amount' => 'decimal:2',
         'paid_amount'     => 'decimal:2',
+        'amount_paid'     => 'decimal:2',
         'due_amount'      => 'decimal:2',
+        'amount_due'      => 'decimal:2',
 
         'exchange_rate'   => 'decimal:4',
     ];
@@ -66,58 +79,36 @@ class Sale extends Model
      * ========================
      */
 
-    /**
-     * Sale creator (logged-in user)
-     */
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');
     }
 
-    /**
-     * 🔥 Customer relationship
-     * sales.customer_id → customers.id
-     */
     public function customer()
     {
         return $this->belongsTo(Customer::class, 'customer_id');
     }
 
-    /**
-     * Warehouse
-     */
     public function warehouse()
     {
         return $this->belongsTo(Warehouse::class);
     }
 
-    /**
-     * Sale items
-     */
     public function saleItems()
     {
         return $this->hasMany(SaleItem::class, 'sale_id');
     }
 
-    /**
-     * Alias (safe)
-     */
     public function items()
     {
         return $this->hasMany(SaleItem::class, 'sale_id');
     }
 
-    /**
-     * Account used for sale
-     */
     public function account()
     {
         return $this->belongsTo(Account::class, 'account_id');
     }
 
-    /**
-     * Account transactions linked with this sale
-     */
     public function accountTransactions()
     {
         return $this->hasMany(AccountTransaction::class, 'reference_id')
@@ -128,7 +119,6 @@ class Sale extends Model
      * ========================
      * Reference Number Generator
      * ========================
-     * Example: SAL-20251217-0001
      */
     public static function generateReferenceNo()
     {
