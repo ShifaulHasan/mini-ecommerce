@@ -9,11 +9,11 @@
             <div class="text-muted">{{ now()->format('l, F d, Y') }}</div>
         </div>
     </x-slot>
-
+@can('dashboardcard1')
     <div class="container-fluid">
-
         <!-- ======== SUMMARY CARDS ======== -->
         <div class="row">
+            
             <div class="col-md-3">
                 <div class="card shadow-sm border-0 mb-3 bg-primary bg-gradient text-white">
                     <div class="card-body">
@@ -235,7 +235,7 @@
 
     </div>
        </div> 
-
+@endcan
     <!-- Footer Note -->
     <div class="row mt-4 mb-3">
         <div class="col-12">

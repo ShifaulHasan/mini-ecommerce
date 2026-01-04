@@ -165,6 +165,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/settings/update', [SettingController::class, 'update'])->name('settings.update');
 
 });
+Route::middleware(['auth'])->group(function () {
+    Route::get('/settings/general', [SettingController::class, 'general'])->name('settings.general');
+    Route::post('/settings/update', [SettingController::class, 'update'])->name('settings.update');
+});
 
 // ===============================
 // Profile Routes
