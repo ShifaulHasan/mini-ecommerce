@@ -17,6 +17,7 @@ class Payroll extends Model
         'payment_method',
         'payment_date',
         'note',
+        'is_approve',
         'created_by'
     ];
 

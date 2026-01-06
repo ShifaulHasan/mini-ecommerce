@@ -143,6 +143,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('employees', EmployeeController::class);
     Route::resource('attendances', AttendanceController::class);
     Route::resource('payrolls', PayrollController::class);
+    Route::post('/payrolls/{id}/approve', [PayrollController::class, 'approve'])->name('payrolls.approve');
 
     // Report Routes
     Route::prefix('reports')->name('reports.')->group(function () {

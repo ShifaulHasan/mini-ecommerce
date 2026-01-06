@@ -14,6 +14,13 @@
                     </div>
                 @endif
 
+                @if(session('error'))
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        {{ session('error') }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                @endif
+
                 @if($errors->any())
                     <div class="alert alert-danger alert-dismissible fade show" role="alert">
                         @foreach($errors->all() as $error)
@@ -58,7 +65,11 @@
                                 <th>Account</th>
                                 <th>Amount</th>
                                 <th>Method</th>
+                                <th>Status</th>
+
+                                  @can('approve payroll')
                                 <th>Action</th>
+                                    @endcan
                             </tr>
                         </thead>
                         <tbody>
@@ -72,15 +83,43 @@
                                     <td>{{ number_format($payroll->amount, 2) }}</td>
                                     <td><span class="badge bg-info">{{ $payroll->payment_method }}</span></td>
                                     <td>
+                                        @if($payroll->is_approve == 0)
+                                            <span class="badge bg-warning text-dark">Pending</span>
+                                        @else               
+                                            <span class="badge bg-success">Approved</span> 
+                                        @endif     
+                                    </td>
+                                      @can('approve payroll')
+                                    <td>
+
                                         <div class="btn-group" role="group">
+                                            @if($payroll->is_approve == 0)
+                                                <!-- Approve Button -->
+                                               
+                                                <form action="{{ route('payrolls.approve', $payroll) }}" 
+                                                      method="POST" 
+                                                      class="d-inline"
+                                                      onsubmit="return confirm('Are you sure you want to approve this payroll? The amount will be deducted from the account.');">
+                                                    @csrf
+                                                    <button type="submit" class="btn btn-sm btn-success" title="Approve & Pay">
+                                                        <i class="bi bi-check-circle"></i>
+                                                    </button>
+                                                </form>
+                                                
+                                            @endif
+                                            
                                             <a href="{{ route('payrolls.show', $payroll) }}" 
                                                class="btn btn-sm btn-info" title="View">
                                                 <i class="bi bi-eye"></i>
                                             </a>
-                                            <a href="{{ route('payrolls.edit', $payroll) }}" 
-                                               class="btn btn-sm btn-warning" title="Edit">
-                                                <i class="bi bi-pencil"></i>
-                                            </a>
+                                            
+                                            @if($payroll->is_approve == 0)
+                                                <a href="{{ route('payrolls.edit', $payroll) }}" 
+                                                   class="btn btn-sm btn-warning" title="Edit">
+                                                    <i class="bi bi-pencil"></i>
+                                                </a>
+                                            @endif
+                                            
                                             <form action="{{ route('payrolls.destroy', $payroll) }}" 
                                                   method="POST" 
                                                   class="d-inline"
@@ -91,12 +130,16 @@
                                                     <i class="bi bi-trash"></i>
                                                 </button>
                                             </form>
+
+                                            
                                         </div>
                                     </td>
+
+                                    @endcan
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="8" class="text-center py-4">
+                                    <td colspan="9" class="text-center py-4">
                                         <p class="text-muted">No payroll records found.</p>
                                     </td>
                                 </tr>
@@ -105,7 +148,7 @@
                         <tfoot>
                             <tr class="table-light fw-bold">
                                 <td colspan="5" class="text-end">Total:</td>
-                                <td colspan="3">{{ number_format($totalAmount, 2) }}</td>
+                                <td colspan="4">{{ number_format($totalAmount, 2) }}</td>
                             </tr>
                         </tfoot>
                     </table>
@@ -283,7 +326,7 @@
     </script>
     @endif
 
-        <!-- Footer Note -->
+    <!-- Footer Note -->
     <div class="row mt-4 mb-3">
         <div class="col-12">
             <p class="text-center text-muted small mb-0">
@@ -291,7 +334,5 @@
             </p>
         </div>
     </div>
-
-</div>
 
 </x-app-layout>
