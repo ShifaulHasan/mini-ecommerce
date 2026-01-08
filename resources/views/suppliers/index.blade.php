@@ -399,9 +399,9 @@
                     <a href="{{ route('suppliers.create') }}" class="btn-add">
                         <i class="fas fa-plus"></i> Add Supplier
                     </a>
-                    <a href="#" class="btn-import">
+                    <!-- <a href="#" class="btn-import">
                         <i class="fas fa-file-import"></i> Import Supplier
-                    </a>
+                    </a> -->
                 </div>
 
                 <!-- Table Controls -->

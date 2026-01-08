@@ -326,7 +326,7 @@
                 </div>
 
                 <!-- Export Buttons -->
-                <div class="export-buttons no-print">
+                <!-- <div class="export-buttons no-print">
                     <button onclick="exportToPDF()" class="btn btn-export">
                         <i class="fas fa-file-pdf"></i> Export PDF
                     </button>
@@ -336,7 +336,7 @@
                     <button onclick="window.print()" class="btn btn-print">
                         <i class="fas fa-print"></i> Print
                     </button>
-                </div>
+                </div> -->
 
                 <!-- Purchase Records Table -->
                 <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">

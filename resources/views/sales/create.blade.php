@@ -463,7 +463,7 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="button" class="btn btn-primary" id="completePaymentBtn" onclick="completeSale(event)">
-                        <i class="bi bi-check-circle"></i> Complete Payment
+                        <i class="bi bi-check-circle"></i> Complete Sale
                     </button>
                 </div>
             </div>

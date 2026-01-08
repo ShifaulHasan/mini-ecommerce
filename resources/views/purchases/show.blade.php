@@ -3,9 +3,6 @@
         <div class="d-flex justify-content-between align-items-center">
             <h2 class="h4 fw-semibold mb-0">Purchase Details</h2>
             <div class="d-flex gap-2">
-                <!-- <button onclick="window.print()" class="btn btn-sm btn-secondary">
-                    <i class="bi bi-printer"></i> Print
-                </button> -->
                 <a href="{{ route('purchases.index') }}" class="btn btn-sm btn-primary">
                     <i class="bi bi-arrow-left"></i> Back to List
                 </a>
@@ -84,6 +81,9 @@
                 </div>
                 <div class="card-body">
                     @if($purchase->items && count($purchase->items) > 0)
+                        @php
+                            $itemsTotal = 0;
+                        @endphp
                         <div class="table-responsive">
                             <table class="table table-bordered table-hover align-middle mb-0">
                                 <thead class="table-light">
@@ -97,6 +97,10 @@
                                 </thead>
                                 <tbody>
                                     @foreach($purchase->items as $index => $item)
+                                        @php
+                                            $itemSubtotal = $item->quantity * $item->cost_price;
+                                            $itemsTotal += $itemSubtotal;
+                                        @endphp
                                         <tr>
                                             <td class="text-center">{{ $index + 1 }}</td>
                                             <td>
@@ -119,7 +123,7 @@
                                             </td>
                                             <td class="text-end">
                                                 <strong class="text-primary fs-6">
-                                                    ৳{{ number_format($item->quantity * $item->cost_price, 2) }}
+                                                    ৳{{ number_format($itemSubtotal, 2) }}
                                                 </strong>
                                             </td>
                                         </tr>
@@ -127,10 +131,10 @@
                                 </tbody>
                                 <tfoot class="table-light">
                                     <tr>
-                                        <td colspan="6" class="text-end"><strong>Total Amount:</strong></td>
+                                        <td colspan="4" class="text-end"><strong>Total Amount:</strong></td>
                                         <td class="text-end">
                                             <strong class="text-primary fs-5">
-                                                ৳{{ number_format($purchase->grand_total, 2) }}
+                                                ৳{{ number_format($itemsTotal, 2) }}
                                             </strong>
                                         </td>
                                     </tr>
@@ -157,29 +161,51 @@
                 </div>
                 <div class="card-body">
 
+                    @php
+                        // Calculate subtotal from items if not set
+                        $subtotal = $purchase->subtotal ?? $purchase->total ?? 0;
+                        if ($subtotal == 0 && $purchase->items) {
+                            foreach ($purchase->items as $item) {
+                                $subtotal += ($item->quantity * $item->cost_price);
+                            }
+                        }
+
+                        // Get other values
+                        $taxAmount = $purchase->tax_amount ?? 0;
+                        $discountAmount = $purchase->discount_amount ?? 0;
+                        $shippingCost = $purchase->shipping_cost ?? 0;
+
+                        // Calculate grand total
+                        $grandTotal = $purchase->grand_total ?? ($subtotal + $taxAmount - $discountAmount + $shippingCost);
+
+                        // Get payment amounts
+                        $paidAmount = $purchase->paid_amount ?? 0;
+                        $dueAmount = $purchase->due_amount ?? ($grandTotal - $paidAmount);
+                    @endphp
+
                     <div class="d-flex justify-content-between mb-2">
                         <span>Subtotal:</span>
-                        <strong>৳{{ number_format($purchase->subtotal ?? $purchase->total, 2) }}</strong>
+                        <strong>৳{{ number_format($subtotal, 2) }}</strong>
                     </div>
 
-                    @if(isset($purchase->tax_amount) && $purchase->tax_amount > 0)
+                    @if($taxAmount > 0)
                     <div class="d-flex justify-content-between mb-2">
                         <span>Tax ({{ $purchase->tax_percentage ?? 0 }}%):</span>
-                        <strong class="text-success">৳{{ number_format($purchase->tax_amount, 2) }}</strong>
+                        <strong class="text-success">৳{{ number_format($taxAmount, 2) }}</strong>
                     </div>
                     @endif
 
-                    @if(isset($purchase->discount_amount) && $purchase->discount_amount > 0)
+                    @if($discountAmount > 0)
                     <div class="d-flex justify-content-between mb-2">
                         <span>Discount:</span>
-                        <strong class="text-danger">-৳{{ number_format($purchase->discount_amount, 2) }}</strong>
+                        <strong class="text-danger">-৳{{ number_format($discountAmount, 2) }}</strong>
                     </div>
                     @endif
 
-                    @if(isset($purchase->shipping_cost) && $purchase->shipping_cost > 0)
+                    @if($shippingCost > 0)
                     <div class="d-flex justify-content-between mb-2">
                         <span>Shipping:</span>
-                        <strong>৳{{ number_format($purchase->shipping_cost, 2) }}</strong>
+                        <strong>৳{{ number_format($shippingCost, 2) }}</strong>
                     </div>
                     @endif
 
@@ -187,17 +213,17 @@
 
                     <div class="d-flex justify-content-between mb-2">
                         <span><strong>Grand Total:</strong></span>
-                        <strong class="text-primary fs-5">৳{{ number_format($purchase->grand_total, 2) }}</strong>
+                        <strong class="text-primary fs-5">৳{{ number_format($grandTotal, 2) }}</strong>
                     </div>
 
                     <div class="d-flex justify-content-between mb-2">
                         <span>Paid:</span>
-                        <strong class="text-success">৳{{ number_format($purchase->paid_amount, 2) }}</strong>
+                        <strong class="text-success">৳{{ number_format($paidAmount, 2) }}</strong>
                     </div>
 
                     <div class="d-flex justify-content-between">
                         <span>Due:</span>
-                        <strong class="text-danger">৳{{ number_format($purchase->due_amount, 2) }}</strong>
+                        <strong class="text-danger">৳{{ number_format($dueAmount, 2) }}</strong>
                     </div>
 
                 </div>
@@ -214,10 +240,10 @@
                         <p class="mb-0">{{ ucfirst($purchase->payment_method) }}</p>
                     </div>
                     @if($purchase->account)
-                    <div>
+                    <!-- <div>
                         <strong>Account:</strong>
                         <p class="mb-0">{{ $purchase->account->account_name }}</p>
-                    </div>
+                    </div> -->
                     @endif
                 </div>
             </div>

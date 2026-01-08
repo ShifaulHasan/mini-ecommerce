@@ -78,14 +78,26 @@
 
 <body>
 
-    <!-- Sidebar -->
-    <div class="sidebar">
-        
-        <h4 class="text-center fw-semibold px-3 mb-4" 
-            style="line-height:1.4; font-size:16px; color:#e4e6eb;">
-            Inventory Management Software And <br>
-            <span style="color:#c7c9d1;">Smart Billing System with E-Commerce</span>
-        </h4>
+  
+  <!-- Sidebar -->
+<div class="sidebar">
+    
+    <!-- Logo Section and name of the site  -->
+<div class="logo-section" style="padding: 24px 20px; text-align: center; border-bottom: 1px solid rgba(255, 255, 255, 0.1); background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);">
+    <img src="{{ asset('images/icon.png') }}" 
+         alt="Logo" 
+         class="sidebar-logo"
+         style="border-radius: 50%; width: 64px; height: 64px; display: block; margin: 0 auto 16px auto; object-fit: cover; border: 3px solid rgba(255, 255, 255, 0.15); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); transition: transform 0.3s ease;">
+    
+    <div class="brand-text" style="margin-top: 12px;">
+        <div class="brand-name" style="font-size: 17px; font-weight: 700; color: #ffffff; margin: 0 0 6px 0; line-height: 1.4; letter-spacing: -0.01em;">
+            Inventory Management Software And
+        </div>
+        <div class="brand-tagline" style="font-size: 13px; font-weight: 500; color: rgba(255, 255, 255, 0.75); margin: 0; line-height: 1.5; letter-spacing: 0.01em;">
+            Smart Billing System With E-Commerce
+        </div>
+    </div>
+</div>
 
         <!-- Dashboard -->
           @can('see dashboard')
