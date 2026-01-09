@@ -53,12 +53,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/roles', [RoleController::class, 'index'])->name('roles.index');
     Route::post('/roles/{role}/permissions', [RoleController::class, 'assignPermissions'])->name('roles.permissions.assign');
 
-     Route::middleware(['auth'])->group(function () {
-
-    Route::get('/permissions', [PermissionController::class, 'index'])->name('permissions.index');
-    Route::post('/permissions', [PermissionController::class, 'store'])->name('permissions.store');
-
-});
+    Route::middleware(['auth'])->group(function () {
+        Route::get('/permissions', [PermissionController::class, 'index'])->name('permissions.index');
+        Route::post('/permissions', [PermissionController::class, 'store'])->name('permissions.store');
+    });
 
     // Categories & Products
     Route::resource('categories', CategoryController::class);
@@ -142,9 +140,17 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('departments', DepartmentController::class);
     Route::resource('employees', EmployeeController::class);
     Route::resource('attendances', AttendanceController::class);
+    
+    // ===============================
+    // PAYROLL ROUTES (FIXED ORDER)
+    // ⚠️ Custom routes MUST come BEFORE resource routes!
+    // ===============================
+    Route::get('/payrolls/get-paid-amount', [PayrollController::class, 'getPaidAmount'])->name('payrolls.getPaidAmount');
+    Route::post('/payrolls/{payroll}/approve', [PayrollController::class, 'approve'])->name('payrolls.approve');
     Route::resource('payrolls', PayrollController::class);
-    Route::post('/payrolls/{id}/approve', [PayrollController::class, 'approve'])->name('payrolls.approve');
+    
 
+    
     // Report Routes
     Route::prefix('reports')->name('reports.')->group(function () {
         Route::get('/products', [ReportController::class, 'productReport'])->name('products');
@@ -164,8 +170,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/settings/pos', [SettingController::class, 'pos'])->name('settings.pos');
     Route::get('/settings/ecommerce', [SettingController::class, 'ecommerce'])->name('settings.ecommerce');
     Route::post('/settings/update', [SettingController::class, 'update'])->name('settings.update');
-
 });
+
 Route::middleware(['auth'])->group(function () {
     Route::get('/settings/general', [SettingController::class, 'general'])->name('settings.general');
     Route::post('/settings/update', [SettingController::class, 'update'])->name('settings.update');

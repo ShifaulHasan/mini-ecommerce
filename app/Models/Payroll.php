@@ -14,6 +14,7 @@ class Payroll extends Model
         'employee_id',
         'account_id',
         'amount',
+        'paid_amount', // NEW FIELD
         'payment_method',
         'payment_date',
         'note',
@@ -23,6 +24,7 @@ class Payroll extends Model
 
     protected $casts = [
         'amount' => 'decimal:2',
+        'paid_amount' => 'decimal:2', // NEW FIELD
         'payment_date' => 'date',
     ];
 
@@ -153,5 +155,21 @@ class Payroll extends Model
     public function scopeForEmployee($query, $employeeId)
     {
         return $query->where('employee_id', $employeeId);
+    }
+
+    /**
+     * Scope for approved payrolls
+     */
+    public function scopeApproved($query)
+    {
+        return $query->where('is_approve', 1);
+    }
+
+    /**
+     * Scope for pending payrolls
+     */
+    public function scopePending($query)
+    {
+        return $query->where('is_approve', 0);
     }
 }
