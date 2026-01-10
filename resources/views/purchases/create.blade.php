@@ -196,9 +196,14 @@
                     </h5>
                     <div class="row g-3">
                         <div class="col-md-4">
-                            <label class="form-label fw-bold">Date <span class="text-danger">*</span></label>
-                            <input type="date" name="purchase_date" class="form-control" value="{{ date('Y-m-d') }}" required>
-                        </div>
+    <label class="form-label fw-bold">Date <span class="text-danger">*</span></label>
+    <input type="date" 
+           name="purchase_date" 
+           class="form-control" 
+           value="{{ date('Y-m-d') }}" 
+           max="{{ date('Y-m-d') }}"
+           required>
+</div>
                         <div class="col-md-4">
                             <label class="form-label fw-bold">Reference No <span class="text-danger">*</span></label>
                             <input type="text" name="reference_no" class="form-control" value="{{ $referenceNo ?? '' }}" readonly required>
@@ -493,8 +498,82 @@ let orderItems = [];
 let itemCounter = 0;
 let productsData = @json($products);
 
-// Wait for DOM to be ready
+// ========================================
+// 🔹 Custom Notification Function
+// ========================================
+function showNotification(message, type = 'error') {
+    // Remove existing notification if any
+    const existing = document.getElementById('customNotification');
+    if (existing) existing.remove();
+    
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.id = 'customNotification';
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: ${type === 'error' ? '#dc3545' : '#28a745'};
+        color: white;
+        padding: 15px 25px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        z-index: 9999;
+        font-weight: 600;
+        animation: slideIn 0.3s ease;
+    `;
+    notification.innerHTML = `
+        <i class="bi bi-${type === 'error' ? 'exclamation-triangle' : 'check-circle'}"></i>
+        ${message}
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Auto remove after 3 seconds
+    setTimeout(() => {
+        notification.style.animation = 'slideOut 0.3s ease';
+        setTimeout(() => notification.remove(), 300);
+    }, 3000);
+}
+
+// Add CSS animation
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes slideIn {
+        from { transform: translateX(400px); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+    }
+    @keyframes slideOut {
+        from { transform: translateX(0); opacity: 1; }
+        to { transform: translateX(400px); opacity: 0; }
+    }
+`;
+document.head.appendChild(style);
+
+// ========================================
+// 🔹 Initialize Event Listeners
+// ========================================
 document.addEventListener('DOMContentLoaded', function() {
+    
+    // Date Validation
+    const purchaseDateInput = document.querySelector('input[name="purchase_date"]');
+    
+    if (purchaseDateInput) {
+        const today = new Date().toISOString().split('T')[0];
+        purchaseDateInput.setAttribute('max', today);
+        
+        purchaseDateInput.addEventListener('input', function() {
+            const selectedDate = new Date(this.value);
+            const todayDate = new Date();
+            todayDate.setHours(0, 0, 0, 0);
+            
+            if (selectedDate > todayDate) {
+                this.value = today;
+                showNotification('Future dates are not allowed for purchase!', 'error');
+            }
+        });
+    }
+    
     // Product Search
     const productSearchInput = document.getElementById('productSearch');
     if (productSearchInput) {
@@ -538,6 +617,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
+   
 function addProduct(productId) {
     const product = productsData.find(p => p.id === productId);
     if (!product) {

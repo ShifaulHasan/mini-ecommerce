@@ -173,9 +173,14 @@
     </h5>
     <div class="row g-3">
         <div class="col-md-4">
-            <label class="form-label fw-bold">Date <span class="text-danger">*</span></label>
-            <input type="date" name="sale_date" class="form-control" value="{{ date('Y-m-d') }}" required>
-        </div>
+    <label class="form-label fw-bold">Date <span class="text-danger">*</span></label>
+    <input type="date" 
+           name="sale_date" 
+           class="form-control" 
+           value="{{ date('Y-m-d') }}" 
+           max="{{ date('Y-m-d') }}"
+           required>
+</div>
         <div class="col-md-4">
             <label class="form-label fw-bold">Reference No</label>
             <input type="text" name="reference_number" class="form-control" value="AUTO" readonly>
@@ -245,7 +250,7 @@
                                     data-code="PRD-{{ $product->id }}" 
                                     data-price="{{ $product->price ?? $product->selling_price ?? 0 }}"
                                     data-stock="{{ $product->stock }}">
-                                PRD-{{ $product->id }} - {{ $product->name }} (Stock: {{ $product->stock }}) - ${{ $product->price ?? $product->selling_price ?? 0 }}
+                                PRD-{{ $product->id }} - {{ $product->name }} (Stock: {{ $product->stock }}) - ৳{{ $product->price ?? $product->selling_price ?? 0 }}
                             </option>
                             @endforeach
                         </select>
@@ -364,7 +369,7 @@
             <option value="{{ $account->id }}" 
                     {{ $account->is_default ? 'selected' : '' }}>
                 {{ $account->name }} - {{ $account->account_no }} 
-                (Balance: ${{ number_format($account->current_balance, 2) }})
+                (Balance: ৳{{ number_format($account->current_balance, 2) }})
             </option>
             @endforeach
         </select>
@@ -474,7 +479,103 @@
 let orderItems = [];
 let itemCounter = 0;
 
+// ========================================
+// 🔹 Custom Notification Function
+// ========================================
+function showNotification(message, type = 'error') {
+    // Remove existing notification if any
+    const existing = document.getElementById('customNotification');
+    if (existing) existing.remove();
+    
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.id = 'customNotification';
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: ${type === 'error' ? '#dc3545' : '#28a745'};
+        color: white;
+        padding: 15px 25px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        z-index: 9999;
+        font-weight: 600;
+        animation: slideIn 0.3s ease;
+        max-width: 400px;
+    `;
+    notification.innerHTML = `
+        <i class="bi bi-${type === 'error' ? 'exclamation-triangle' : 'check-circle'}"></i>
+        ${message}
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Auto remove after 3 seconds
+    setTimeout(() => {
+        notification.style.animation = 'slideOut 0.3s ease';
+        setTimeout(() => notification.remove(), 300);
+    }, 3000);
+}
+
+// Add CSS animation
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes slideIn {
+        from { transform: translateX(400px); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+    }
+    @keyframes slideOut {
+        from { transform: translateX(0); opacity: 1; }
+        to { transform: translateX(400px); opacity: 0; }
+    }
+    .stock-info {
+        font-size: 11px;
+        margin-top: 3px;
+    }
+    .stock-warning {
+        color: #dc3545;
+        font-weight: 600;
+    }
+    .stock-ok {
+        color: #28a745;
+    }
+`;
+document.head.appendChild(style);
+
+// ========================================
+// 🔹 Initialize All Event Listeners
+// ========================================
 document.addEventListener('DOMContentLoaded', function() {
+    
+    // ========================================
+    // 🔹 Date Validation - Block Future Dates
+    // ========================================
+    const saleDateInput = document.querySelector('input[name="sale_date"]');
+    
+    if (saleDateInput) {
+        const today = new Date().toISOString().split('T')[0];
+        saleDateInput.setAttribute('max', today);
+        
+        saleDateInput.addEventListener('input', function() {
+            const selectedDate = new Date(this.value);
+            const todayDate = new Date();
+            todayDate.setHours(0, 0, 0, 0);
+            
+            if (selectedDate > todayDate) {
+                this.value = today;
+                if (!this.dataset.alertShown) {
+                    showNotification('Future dates are not allowed for sale!', 'error');
+                    this.dataset.alertShown = 'true';
+                    setTimeout(() => delete this.dataset.alertShown, 2000);
+                }
+            }
+        });
+    }
+    
+    // ========================================
+    // 🔹 Product Selection Handler
+    // ========================================
     const productSelect = document.getElementById('productSelect');
     if (productSelect) {
         productSelect.addEventListener('change', function() {
@@ -482,14 +583,23 @@ document.addEventListener('DOMContentLoaded', function() {
             
             const option = this.options[this.selectedIndex];
             const productId = this.value;
+            const availableStock = parseInt(option.dataset.stock) || 0;
             
-            // Check if already added
+            // ✅ Check if already added
             if (orderItems.find(item => item.productId == productId)) {
-                alert('Product already added!');
+                showNotification('Product already added to cart!', 'error');
                 this.value = '';
                 return;
             }
             
+            // ✅ Check stock availability
+            if (availableStock <= 0) {
+                showNotification('⚠️ Product Out of Stock!', 'error');
+                this.value = '';
+                return;
+            }
+            
+            // ✅ Add product to cart
             itemCounter++;
             const item = {
                 id: itemCounter,
@@ -499,17 +609,22 @@ document.addEventListener('DOMContentLoaded', function() {
                 quantity: 1,
                 unitPrice: parseFloat(option.dataset.price),
                 discount: 0,
-                tax: 0
+                tax: 0,
+                availableStock: availableStock
             };
             
             orderItems.push(item);
             renderOrderTable();
             calculateTotal();
             this.value = '';
+            showNotification('Product added successfully!', 'success');
         });
     }
 });
 
+// ========================================
+// 🔹 Render Order Table
+// ========================================
 function renderOrderTable() {
     const tbody = document.getElementById('orderTableBody');
     
@@ -525,48 +640,102 @@ function renderOrderTable() {
         return;
     }
     
-    tbody.innerHTML = orderItems.map(item => `
+    tbody.innerHTML = orderItems.map(item => {
+        // ✅ Check if stock is running low
+        const stockStatus = item.availableStock <= 5 ? 'stock-warning' : 'stock-ok';
+        const stockIcon = item.availableStock <= 5 ? 'bi-exclamation-triangle' : 'bi-box-seam';
+        
+        return `
         <tr>
-            <td><strong>${item.name}</strong></td>
+            <td>
+                <strong>${item.name}</strong>
+                <div class="stock-info ${stockStatus}">
+                    <i class="${stockIcon}"></i> Available: ${item.availableStock}
+                    ${item.availableStock <= 5 ? ' (Low Stock!)' : ''}
+                </div>
+            </td>
             <td><small class="text-muted">${item.code}</small></td>
             <td>
-                <input type="number" class="form-control form-control-sm" min="1" value="${item.quantity}" 
-                       onchange="updateQuantity(${item.id}, this.value)">
+                <input type="number" 
+                       class="form-control form-control-sm" 
+                       min="1" 
+                       max="${item.availableStock}" 
+                       value="${item.quantity}" 
+                       onchange="updateQuantity(${item.id}, this.value)"
+                       title="Max Available: ${item.availableStock}">
             </td>
             <td>
-                <input type="number" class="form-control form-control-sm" step="any" value="${item.unitPrice}" 
+                <input type="number" 
+                       class="form-control form-control-sm" 
+                       step="any" 
+                       value="${item.unitPrice}" 
                        onchange="updatePrice(${item.id}, this.value)">
             </td>
             <td>
-                <input type="number" class="form-control form-control-sm" step="any" value="${item.discount}" 
+                <input type="number" 
+                       class="form-control form-control-sm" 
+                       step="any" 
+                       value="${item.discount}" 
                        onchange="updateDiscount(${item.id}, this.value)">
             </td>
             <td>
-                <input type="number" class="form-control form-control-sm" step="any" value="${item.tax}" 
+                <input type="number" 
+                       class="form-control form-control-sm" 
+                       step="any" 
+                       value="${item.tax}" 
                        onchange="updateTax(${item.id}, this.value)">
             </td>
             <td><strong>৳${calculateItemSubtotal(item).toFixed(2)}</strong></td>
             <td>
-                <i class="bi bi-trash delete-btn" onclick="removeItem(${item.id})"></i>
+                <i class="bi bi-trash delete-btn" onclick="removeItem(${item.id})" title="Remove"></i>
             </td>
         </tr>
-    `).join('');
+    `}).join('');
 }
 
+// ========================================
+// 🔹 Calculate Item Subtotal
+// ========================================
 function calculateItemSubtotal(item) {
     const base = item.quantity * item.unitPrice;
     return base - item.discount + item.tax;
 }
 
+// ========================================
+// 🔹 Update Quantity with Stock Validation
+// ========================================
 function updateQuantity(id, value) {
     const item = orderItems.find(i => i.id === id);
-    if (item) {
-        item.quantity = parseInt(value) || 1;
+    if (!item) return;
+    
+    const newQty = parseInt(value) || 1;
+    
+    // ✅ Validate quantity is positive
+    if (newQty < 1) {
+        showNotification('Quantity must be at least 1', 'error');
         renderOrderTable();
-        calculateTotal();
+        return;
     }
+    
+    // ✅ Validate against available stock
+    if (newQty > item.availableStock) {
+        showNotification(
+            `⚠️ Product Out of Stock!<br><small>Only ${item.availableStock} available for "${item.name}"</small>`,
+            'error'
+        );
+        renderOrderTable(); // Reset to previous value
+        return;
+    }
+    
+    // ✅ Update quantity
+    item.quantity = newQty;
+    renderOrderTable();
+    calculateTotal();
 }
 
+// ========================================
+// 🔹 Update Price
+// ========================================
 function updatePrice(id, value) {
     const item = orderItems.find(i => i.id === id);
     if (item) {
@@ -576,6 +745,9 @@ function updatePrice(id, value) {
     }
 }
 
+// ========================================
+// 🔹 Update Discount
+// ========================================
 function updateDiscount(id, value) {
     const item = orderItems.find(i => i.id === id);
     if (item) {
@@ -585,6 +757,9 @@ function updateDiscount(id, value) {
     }
 }
 
+// ========================================
+// 🔹 Update Tax
+// ========================================
 function updateTax(id, value) {
     const item = orderItems.find(i => i.id === id);
     if (item) {
@@ -594,14 +769,21 @@ function updateTax(id, value) {
     }
 }
 
+// ========================================
+// 🔹 Remove Item
+// ========================================
 function removeItem(id) {
-    if (confirm('Remove this product?')) {
+    if (confirm('Are you sure you want to remove this product?')) {
         orderItems = orderItems.filter(i => i.id !== id);
         renderOrderTable();
         calculateTotal();
+        showNotification('Product removed successfully', 'success');
     }
 }
 
+// ========================================
+// 🔹 Calculate Total
+// ========================================
 function calculateTotal() {
     const subtotal = orderItems.reduce((sum, item) => sum + calculateItemSubtotal(item), 0);
     
@@ -615,6 +797,7 @@ function calculateTotal() {
     const shipping = parseFloat(shippingCostInput ? shippingCostInput.value : 0) || 0;
     const grandTotal = subtotal + orderTax - orderDiscount + shipping;
     
+    // Update display
     const totalItemsEl = document.getElementById('totalItems');
     const displaySubtotalEl = document.getElementById('displaySubtotal');
     const displayOrderTaxEl = document.getElementById('displayOrderTax');
@@ -630,18 +813,25 @@ function calculateTotal() {
     if (displayGrandTotalEl) displayGrandTotalEl.textContent = '৳' + grandTotal.toFixed(2);
 }
 
+// ========================================
+// 🔹 Show Payment Modal
+// ========================================
 function showPaymentModal() {
+    // ✅ Validate: At least one product
     if (orderItems.length === 0) {
-        alert('Please add at least one product!');
+        showNotification('Please add at least one product!', 'error');
         return;
     }
     
+    // ✅ Validate: Warehouse selected
     const warehouseSelect = document.querySelector('select[name="warehouse_id"]');
     if (warehouseSelect && !warehouseSelect.value) {
-        alert('Please select a warehouse!');
+        showNotification('Please select a warehouse!', 'error');
+        warehouseSelect.focus();
         return;
     }
     
+    // ✅ Set payment modal values
     const grandTotalEl = document.getElementById('displayGrandTotal');
     const grandTotal = grandTotalEl ? grandTotalEl.textContent : '৳0.00';
     
@@ -649,10 +839,11 @@ function showPaymentModal() {
     const amountPayingInput = document.getElementById('amountPaying');
     
     if (paymentTotalEl) paymentTotalEl.textContent = grandTotal;
-    if (amountPayingInput) amountPayingInput.value = grandTotal.replace('৳', '');
+    if (amountPayingInput) amountPayingInput.value = grandTotal.replace('৳', '').trim();
     
     calculateChange();
     
+    // ✅ Show modal
     const modalEl = document.getElementById('paymentModal');
     if (modalEl) {
         const modal = new bootstrap.Modal(modalEl);
@@ -660,15 +851,26 @@ function showPaymentModal() {
     }
 }
 
+// ========================================
+// 🔹 Select Payment Method
+// ========================================
 function selectPayment(method) {
+    // Remove active class from all
     document.querySelectorAll('.payment-method').forEach(el => el.classList.remove('active'));
+    
+    // Add active class to selected
     if (event && event.currentTarget) {
         event.currentTarget.classList.add('active');
     }
+    
+    // Check radio button
     const radioBtn = document.getElementById('pay_' + method);
     if (radioBtn) radioBtn.checked = true;
 }
 
+// ========================================
+// 🔹 Calculate Change
+// ========================================
 function calculateChange() {
     const paymentTotalEl = document.getElementById('paymentTotal');
     const amountPayingInput = document.getElementById('amountPaying');
@@ -679,35 +881,44 @@ function calculateChange() {
     const total = parseFloat(paymentTotalEl.textContent.replace('৳', '').replace(/,/g, ''));
     const paying = parseFloat(amountPayingInput.value) || 0;
     const change = paying - total;
+    
     changeReturnInput.value = change >= 0 ? '৳' + change.toFixed(2) : '৳0.00';
 }
 
+// ========================================
+// 🔹 Complete Sale (Submit)
+// ========================================
 function completeSale(event) {
     if (event) event.preventDefault();
     
+    // ✅ Validate: Products added
     if (orderItems.length === 0) {
-        alert('Please add at least one product!');
+        showNotification('Please add at least one product!', 'error');
         return;
     }
 
+    // ✅ Validate: Account selected
     const accountId = parseInt(document.getElementById('accountSelectSale').value);
     if (!accountId) {
-        alert('Please select an account!');
+        showNotification('Please select an account!', 'error');
         return;
     }
     
+    // ✅ Validate: Payment method selected
     const paymentMethod = document.querySelector('input[name="payment_method"]:checked');
     if (!paymentMethod) {
-        alert('Please select a payment method!');
+        showNotification('Please select a payment method!', 'error');
         return;
     }
     
+    // ✅ Validate: Warehouse selected
     const warehouseSelect = document.querySelector('select[name="warehouse_id"]');
     if (!warehouseSelect || !warehouseSelect.value) {
-        alert('Please select a warehouse!');
+        showNotification('Please select a warehouse!', 'error');
         return;
     }
     
+    // ✅ Disable button and show loading
     const btn = event ? event.target : document.getElementById('completePaymentBtn');
     if (!btn) return;
     
@@ -715,7 +926,7 @@ function completeSale(event) {
     btn.disabled = true;
     btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Processing...';
     
-    // ✅ Calculate all values properly
+    // Calculate all amounts
     const subtotal = orderItems.reduce((sum, item) => sum + calculateItemSubtotal(item), 0);
     
     const orderTaxInput = document.getElementById('orderTax');
@@ -761,7 +972,7 @@ function completeSale(event) {
         tax: item.tax || 0
     }));
     
-    // ✅ Prepare data object with ALL required fields
+    // Prepare data object
     const data = {
         sale_date: saleDateInput ? saleDateInput.value : new Date().toISOString().split('T')[0],
         warehouse_id: warehouseSelect.value,
@@ -772,7 +983,6 @@ function completeSale(event) {
         payment_method: paymentMethod.value,
         account_id: accountId,
         
-        // ✅ CRITICAL: Send all amount fields
         subtotal: subtotal,
         tax_amount: taxAmount,
         discount_amount: discountAmount,
@@ -784,10 +994,11 @@ function completeSale(event) {
         items: items
     };
     
-    console.log('=== SENDING DATA ===');
+    console.log('=== SENDING SALE DATA ===');
     console.log(JSON.stringify(data, null, 2));
     console.log('=== END DATA ===');
     
+    // Send AJAX request
     const csrfToken = document.querySelector('meta[name="csrf-token"]');
     const token = csrfToken ? csrfToken.getAttribute('content') : '';
     
@@ -821,15 +1032,17 @@ function completeSale(event) {
                 if (modal) modal.hide();
             }
             
-            alert('✅ Sale completed successfully! Account balance has been updated.');
-            window.location.href = data.redirect || '{{ route("sales.index") }}';
+            showNotification('Sale completed successfully!', 'success');
+            setTimeout(() => {
+                window.location.href = data.redirect || '{{ route("sales.index") }}';
+            }, 1000);
         } else {
             throw new Error(data.message || 'Failed to complete sale');
         }
     })
     .catch(error => {
         console.error('Sale Error:', error);
-        alert('❌ Error: ' + error.message);
+        showNotification('Error: ' + error.message, 'error');
         btn.disabled = false;
         btn.innerHTML = originalText;
     });

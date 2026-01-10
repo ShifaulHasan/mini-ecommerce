@@ -92,165 +92,205 @@ class PurchaseController extends Controller
     /**
      * Store a newly created purchase in storage.
      */
-    public function store(Request $request)
-    {
-        $validated = $request->validate([
-            'purchase_date'   => 'required|date',
-            'reference_no'    => 'required|unique:purchases,reference_no',
-            'warehouse_id'    => 'required|exists:warehouses,id',
-            'supplier_id'     => 'nullable|string', // Can be 'supplier_X' or 'user_X'
-            'purchase_status' => 'required|in:received,pending',
-            'payment_status'  => 'required|in:paid,partial,pending,unpaid',
-            'payment_method'  => 'nullable|string',
-            'account_id'      => 'required|exists:accounts,id',
-            'grand_total'     => 'required|numeric',
-            'amount_paid'     => 'nullable|numeric',
-            'tax_percentage'  => 'nullable|numeric',
-            'discount_value'  => 'nullable|numeric',
-            'shipping_cost'   => 'nullable|numeric',
-            'currency'        => 'nullable|string',
-            'exchange_rate'   => 'nullable|numeric',
-            'notes'           => 'nullable|string',
-            'document'        => 'nullable|file|mimes:pdf,jpg,png,jpeg|max:2048',
-            'items'           => 'required|array|min:1',
-        ]);
+   public function store(Request $request)
+{
+    $validated = $request->validate([
+        'purchase_date'   => 'required|date|before_or_equal:today', // ✅ Added future date validation
+        'reference_no'    => 'required|unique:purchases,reference_no',
+        'warehouse_id'    => 'required|exists:warehouses,id',
+        'supplier_id'     => 'nullable|string', // Can be 'supplier_X' or 'user_X'
+        'purchase_status' => 'required|in:received,pending',
+        'payment_status'  => 'required|in:paid,partial,pending,unpaid',
+        'payment_method'  => 'nullable|string',
+        'account_id'      => 'required|exists:accounts,id',
+        'grand_total'     => 'required|numeric|min:0',
+        'amount_paid'     => 'nullable|numeric|min:0',
+        'tax_percentage'  => 'nullable|numeric|min:0',
+        'discount_value'  => 'nullable|numeric|min:0',
+        'shipping_cost'   => 'nullable|numeric|min:0',
+        'currency'        => 'nullable|string',
+        'exchange_rate'   => 'nullable|numeric|min:0',
+        'notes'           => 'nullable|string',
+        'document'        => 'nullable|file|mimes:pdf,jpg,png,jpeg|max:2048',
+        'items'           => 'required|array|min:1',
+    ], [
+        'purchase_date.before_or_equal' => 'Purchase date cannot be in the future.',
+        'warehouse_id.required' => 'Please select a warehouse.',
+        'account_id.required' => 'Please select an account.',
+        'items.required' => 'Please add at least one product.',
+        'items.min' => 'Please add at least one product.',
+    ]);
 
-        // Parse supplier_id
-        $supplierData = $this->parseSupplierData($validated['supplier_id']);
+    // ✅ Parse supplier_id
+    $supplierData = $this->parseSupplierData($validated['supplier_id'] ?? null);
 
-        // Handle document upload
-        $documentPath = null;
-        if ($request->hasFile('document')) {
+    // ✅ Handle document upload
+    $documentPath = null;
+    if ($request->hasFile('document')) {
+        try {
             $file = $request->file('document');
             $filename = time() . '_' . $file->getClientOriginalName();
             $file->move(public_path('uploads/purchases'), $filename);
             $documentPath = 'uploads/purchases/' . $filename;
+        } catch (\Exception $e) {
+            Log::warning('Document upload failed: ' . $e->getMessage());
+        }
+    }
+
+    // ✅ Calculate amounts
+    $paidAmount = floatval($validated['amount_paid'] ?? 0);
+    $grandTotal = floatval($validated['grand_total']);
+    $dueAmount  = max(0, $grandTotal - $paidAmount);
+
+    DB::beginTransaction();
+    try {
+        // Calculate subtotal from items
+        $subtotal = 0;
+        foreach ($request->items as $item) {
+            $itemTotal = ($item['quantity'] * $item['cost_price']) - ($item['discount'] ?? 0) + ($item['tax'] ?? 0);
+            $subtotal += $itemTotal;
         }
 
-        // Amounts
-        $paidAmount = floatval($validated['amount_paid'] ?? 0);
-        $grandTotal = floatval($validated['grand_total']);
-        $dueAmount  = max(0, $grandTotal - $paidAmount);
+        $taxPercentage = floatval($validated['tax_percentage'] ?? 0);
+        $taxAmount = ($subtotal * $taxPercentage) / 100;
+        $discountValue = floatval($validated['discount_value'] ?? 0);
+        $shippingCost = floatval($validated['shipping_cost'] ?? 0);
+        $total = $subtotal + $taxAmount - $discountValue + $shippingCost;
 
-        DB::beginTransaction();
-        try {
-            // Calculate subtotal from items
-            $subtotal = 0;
-            foreach ($request->items as $item) {
-                $itemTotal = ($item['quantity'] * $item['cost_price']) - ($item['discount'] ?? 0) + ($item['tax'] ?? 0);
-                $subtotal += $itemTotal;
+        // Create Purchase
+        $purchase = Purchase::create([
+            'reference_no'     => $validated['reference_no'],
+            'purchase_date'    => $validated['purchase_date'],
+            'warehouse_id'     => $validated['warehouse_id'],
+            'supplier_id'      => $supplierData['supplier_id'],
+            'supplier_type'    => $supplierData['supplier_type'],
+            'purchase_status'  => $validated['purchase_status'],
+            'payment_status'   => $validated['payment_status'],
+            'payment_method'   => $validated['payment_method'] ?? 'cash',
+            'account_id'       => $validated['account_id'],
+            'currency'         => $validated['currency'] ?? 'BDT',
+            'exchange_rate'    => $validated['exchange_rate'] ?? 1.00,
+            'subtotal'         => $subtotal,
+            'tax_percentage'   => $taxPercentage,
+            'tax_amount'       => $taxAmount,
+            'discount_type'    => 'flat',
+            'discount_value'   => $discountValue,
+            'discount_amount'  => $discountValue,
+            'shipping_cost'    => $shippingCost,
+            'total'            => $total,
+            'grand_total'      => $grandTotal,
+            'paid_amount'      => $paidAmount,
+            'due_amount'       => $dueAmount,
+            'notes'            => $validated['notes'] ?? null,
+            'document'         => $documentPath,
+            'document_path'    => $documentPath,
+            'created_by'       => auth()->id(),
+        ]);
+
+        // Create Items and update stock
+        foreach ($request->items as $item) {
+            $purchase->items()->create([
+                'product_id'  => $item['product_id'],
+                'quantity'    => $item['quantity'],
+                'batch_id'    => $item['batch_id'] ?? null,
+                'expiry_date' => $item['expiry_date'] ?? null,
+                'cost_price'  => $item['cost_price'] ?? 0,
+                'discount'    => $item['discount'] ?? 0,
+                'tax'         => $item['tax'] ?? 0,
+            ]);
+
+            // Update stock if status is 'received'
+            if ($validated['purchase_status'] === 'received') {
+                $product = Product::find($item['product_id']);
+                if ($product) {
+                    $product->increment('stock', $item['quantity']);
+                    if (isset($item['cost_price'])) {
+                        $product->cost_price = $item['cost_price'];
+                    }
+                    $product->save();
+                }
+            }
+        }
+
+        // Update account balance & create transaction
+        if ($paidAmount > 0) {
+            $account = Account::lockForUpdate()->find($validated['account_id']);
+            if (!$account) throw new \Exception("Account not found");
+
+            if ($account->current_balance < $paidAmount) {
+                throw new \Exception("Insufficient account balance. Available: ৳" . number_format($account->current_balance, 2) . ", Required: ৳" . number_format($paidAmount, 2));
             }
 
-            $taxPercentage = floatval($validated['tax_percentage'] ?? 0);
-            $taxAmount = ($subtotal * $taxPercentage) / 100;
-            $discountValue = floatval($validated['discount_value'] ?? 0);
-            $shippingCost = floatval($validated['shipping_cost'] ?? 0);
-            $total = $subtotal + $taxAmount - $discountValue + $shippingCost;
+            $balanceBefore = $account->current_balance;
+            $account->current_balance -= $paidAmount;
+            $account->save();
 
-            // Create Purchase
-            $purchase = Purchase::create([
-                'reference_no'     => $validated['reference_no'],
-                'purchase_date'    => $validated['purchase_date'],
-                'warehouse_id'     => $validated['warehouse_id'],
-                'supplier_id'      => $supplierData['supplier_id'],
-                'supplier_type'    => $supplierData['supplier_type'],
-                'purchase_status'  => $validated['purchase_status'],
-                'payment_status'   => $validated['payment_status'],
-                'payment_method'   => $validated['payment_method'] ?? 'cash',
-                'account_id'       => $validated['account_id'],
-                'currency'         => $validated['currency'] ?? 'BDT',
-                'exchange_rate'    => $validated['exchange_rate'] ?? 1.00,
-                'subtotal'         => $subtotal,
-                'tax_percentage'   => $taxPercentage,
-                'tax_amount'       => $taxAmount,
-                'discount_type'    => 'flat',
-                'discount_value'   => $discountValue,
-                'discount_amount'  => $discountValue,
-                'shipping_cost'    => $shippingCost,
-                'total'            => $total,
-                'grand_total'      => $grandTotal,
-                'paid_amount'      => $paidAmount,
-                'due_amount'       => $dueAmount,
-                'notes'            => $validated['notes'] ?? null,
-                'document'         => $documentPath,
-                'document_path'    => $documentPath,
+            AccountTransaction::create([
+                'account_id'       => $account->id,
+                'reference_type'   => 'purchase',
+                'reference_id'     => $purchase->id,
+                'transaction_type' => 'debit',
+                'amount'           => $paidAmount,
+                'balance_before'   => $balanceBefore,
+                'balance_after'    => $account->current_balance,
+                'description'      => "Purchase payment - {$purchase->reference_no}",
+                'transaction_date' => $validated['purchase_date'],
                 'created_by'       => auth()->id(),
             ]);
 
-            // Create Items and update stock
-            foreach ($request->items as $item) {
-                $purchase->items()->create([
-                    'product_id'  => $item['product_id'],
-                    'quantity'    => $item['quantity'],
-                    'batch_id'    => $item['batch_id'] ?? null,
-                    'expiry_date' => $item['expiry_date'] ?? null,
-                    'cost_price'  => $item['cost_price'] ?? 0,
-                    'discount'    => $item['discount'] ?? 0,
-                    'tax'         => $item['tax'] ?? 0,
-                ]);
-
-                // Update stock if status is 'received'
-                if ($validated['purchase_status'] === 'received') {
-                    $product = Product::find($item['product_id']);
-                    if ($product) {
-                        $product->increment('stock', $item['quantity']);
-                        if (isset($item['cost_price'])) {
-                            $product->cost_price = $item['cost_price'];
-                        }
-                        $product->save();
-                    }
-                }
-            }
-
-            // Update account balance & create transaction
-            if ($paidAmount > 0) {
-                $account = Account::lockForUpdate()->find($validated['account_id']);
-                if (!$account) throw new \Exception("Account not found");
-
-                if ($account->current_balance < $paidAmount) {
-                    throw new \Exception("Insufficient account balance.");
-                }
-
-                $balanceBefore = $account->current_balance;
-                $account->current_balance -= $paidAmount;
-                $account->save();
-
-                AccountTransaction::create([
-                    'account_id'       => $account->id,
-                    'reference_type'   => 'purchase',
-                    'reference_id'     => $purchase->id,
-                    'transaction_type' => 'debit',
-                    'amount'           => $paidAmount,
-                    'balance_before'   => $balanceBefore,
-                    'balance_after'    => $account->current_balance,
-                    'description'      => "Purchase payment - {$purchase->reference_no}",
-                    'transaction_date' => $validated['purchase_date'],
-                    'created_by'       => auth()->id(),
-                ]);
-            }
-
-            // Update supplier's total_due
-            if ($supplierData['supplier_type'] === 'supplier' && $dueAmount > 0) {
-                $supplier = Supplier::find($supplierData['supplier_id']);
-                if ($supplier) {
-                    $supplier->increment('total_due', $dueAmount);
-                }
-            }
-
-            DB::commit();
-
-            return response()->json([
-                'success'     => true,
-                'message'     => 'Purchase created successfully!',
-                'purchase_id' => $purchase->id,
+            Log::info('Account transaction created for purchase', [
+                'account_id' => $account->id,
+                'account_name' => $account->name,
+                'amount' => $paidAmount,
+                'balance_before' => $balanceBefore,
+                'balance_after' => $account->current_balance,
             ]);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Purchase Store Error: ' . $e->getMessage());
-            return response()->json(['success' => false, 'message' => 'Failed to create purchase: ' . $e->getMessage()], 500);
         }
+
+        // Update supplier's total_due
+        if ($supplierData['supplier_type'] === 'supplier' && $dueAmount > 0) {
+            $supplier = Supplier::find($supplierData['supplier_id']);
+            if ($supplier) {
+                $supplier->increment('total_due', $dueAmount);
+                
+                Log::info('Supplier due updated', [
+                    'supplier_id' => $supplier->id,
+                    'supplier_name' => $supplier->name,
+                    'due_added' => $dueAmount,
+                    'total_due' => $supplier->fresh()->total_due,
+                ]);
+            }
+        }
+
+        DB::commit();
+
+        Log::info('Purchase completed successfully', [
+            'purchase_id' => $purchase->id,
+            'reference_no' => $purchase->reference_no,
+            'total_items' => count($request->items),
+        ]);
+
+        return response()->json([
+            'success'     => true,
+            'message'     => 'Purchase created successfully!',
+            'purchase_id' => $purchase->id,
+        ]);
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+
+        Log::error('PURCHASE STORE ERROR: ' . $e->getMessage(), [
+            'user_id' => auth()->id(),
+            'request_data' => $request->except(['document']),
+            'stack_trace' => $e->getTraceAsString(),
+        ]);
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to create purchase: ' . $e->getMessage()
+        ], 500);
     }
+}
 /**
  * Display the specified purchase.
  */

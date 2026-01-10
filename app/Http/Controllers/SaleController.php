@@ -80,241 +80,284 @@ class SaleController extends Controller
         ));
     }
 
-    public function store(Request $request)
-    {
-        if ($request->isJson()) {
-            $request->merge($request->json()->all());
-        }
+   public function store(Request $request)
+{
+    if ($request->isJson()) {
+        $request->merge($request->json()->all());
+    }
 
-        $validated = $request->validate([
-            'reference_number' => 'nullable|string|unique:sales,reference_number',
-            'sale_date'      => 'required|date',
-            'warehouse_id'   => 'required|exists:warehouses,id',
-            'customer_id'    => 'nullable|string',
+    $validated = $request->validate([
+        'reference_number' => 'nullable|string|unique:sales,reference_number',
+        'sale_date'      => 'required|date|before_or_equal:today', // ✅ Added future date validation
+        'warehouse_id'   => 'required|exists:warehouses,id',
+        'customer_id'    => 'nullable|string',
 
-            'sale_status'    => 'required|in:completed,pending',
-            'payment_status' => 'required|in:paid,partial,pending',
-            'payment_method' => 'nullable|string',
-            'account_id'     => 'required|exists:accounts,id',
-            'delivery_status' => 'nullable|in:pending,processing,delivered,cancelled',
+        'sale_status'    => 'required|in:completed,pending',
+        'payment_status' => 'required|in:paid,partial,pending',
+        'payment_method' => 'nullable|string',
+        'account_id'     => 'required|exists:accounts,id',
+        'delivery_status' => 'nullable|in:pending,processing,delivered,cancelled',
 
-            'subtotal'       => 'nullable|numeric|min:0',
-            'tax_amount'     => 'nullable|numeric|min:0',
-            'discount_amount'=> 'nullable|numeric|min:0',
-            'shipping_amount'=> 'nullable|numeric|min:0',
-            'grand_total'    => 'required|numeric|min:0',
-            'amount_paid'    => 'nullable|numeric|min:0',
+        'subtotal'       => 'nullable|numeric|min:0',
+        'tax_amount'     => 'nullable|numeric|min:0',
+        'discount_amount'=> 'nullable|numeric|min:0',
+        'shipping_amount'=> 'nullable|numeric|min:0',
+        'grand_total'    => 'required|numeric|min:0',
+        'amount_paid'    => 'nullable|numeric|min:0',
 
-            'notes'          => 'nullable|string',
+        'notes'          => 'nullable|string',
 
-            'items'                  => 'required|array|min:1',
-            'items.*.product_id'     => 'required|exists:products,id',
-            'items.*.quantity'       => 'required|numeric|min:1',
-            'items.*.unit_price'     => 'required|numeric|min:0',
-            'items.*.discount'       => 'nullable|numeric|min:0',
-            'items.*.tax'            => 'nullable|numeric|min:0',
-        ]);
+        'items'                  => 'required|array|min:1',
+        'items.*.product_id'     => 'required|exists:products,id',
+        'items.*.quantity'       => 'required|numeric|min:1',
+        'items.*.unit_price'     => 'required|numeric|min:0',
+        'items.*.discount'       => 'nullable|numeric|min:0',
+        'items.*.tax'            => 'nullable|numeric|min:0',
+    ], [
+        // ✅ Custom error messages
+        'sale_date.before_or_equal' => 'Sale date cannot be in the future.',
+        'warehouse_id.required' => 'Please select a warehouse.',
+        'account_id.required' => 'Please select an account.',
+        'items.required' => 'Please add at least one product.',
+        'items.min' => 'Please add at least one product.',
+    ]);
 
-        $customerId = null;
-        $customerRecord = null;
-        
-        if (!empty($validated['customer_id'])) {
-            if (strpos($validated['customer_id'], 'customer_') === 0) {
-                $customerId = (int) str_replace('customer_', '', $validated['customer_id']);
-                $customerRecord = Customer::find($customerId);
-                
-                if (!$customerRecord) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Selected customer not found'
-                    ], 422);
-                }
-            } elseif (strpos($validated['customer_id'], 'user_') === 0) {
-                $userId = (int) str_replace('user_', '', $validated['customer_id']);
-                $user = User::find($userId);
-                
-                if (!$user || $user->role !== 'Customer') {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Selected user is not a customer'
-                    ], 422);
-                }
-                
-                $customerRecord = Customer::where('user_id', $userId)->first();
-                
-                if (!$customerRecord) {
-                    $customerRecord = Customer::create([
-                        'name' => $user->name,
-                        'email' => $user->email,
-                        'phone' => $user->phone ?? '',
-                        'user_id' => $userId,
-                        'is_active' => true,
-                        'created_by' => auth()->id(),
-                    ]);
-                }
-                
-                $customerId = $customerRecord->id;
-            } else {
-                $customerId = (int) $validated['customer_id'];
-                $customerRecord = Customer::find($customerId);
-                
-                if (!$customerRecord) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Customer not found'
-                    ], 422);
-                }
+    // ✅ Validate customer
+    $customerId = null;
+    $customerRecord = null;
+    
+    if (!empty($validated['customer_id'])) {
+        if (strpos($validated['customer_id'], 'customer_') === 0) {
+            $customerId = (int) str_replace('customer_', '', $validated['customer_id']);
+            $customerRecord = Customer::find($customerId);
+            
+            if (!$customerRecord) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Selected customer not found'
+                ], 422);
             }
-        }
-
-        $paidAmount = $validated['amount_paid'] ?? 0;
-        $dueAmount  = max(0, $validated['grand_total'] - $paidAmount);
-        $billerName = auth()->user()->name ?? 'Admin';
-        $deliveryStatus = $validated['delivery_status'] ?? null;
-        
-        if (!$deliveryStatus) {
-            $deliveryStatus = $validated['sale_status'] === 'completed' ? 'delivered' : 'pending';
-        }
-
-        DB::beginTransaction();
-
-        try {
-            $referenceNumber = $validated['reference_number'] ?? 'SAL-' . date('Ymd') . '-' . str_pad(
-                Sale::whereDate('created_at', date('Y-m-d'))->count() + 1,
-                4,
-                '0',
-                STR_PAD_LEFT
-            );
-
-            $sale = Sale::create([
-                'reference_number' => $referenceNumber,
-                'sale_date'        => $validated['sale_date'],
-                'warehouse_id'     => $validated['warehouse_id'],
-                'customer_id'      => $customerId,
-
-                'biller'           => $billerName,
-                'sale_status'      => $validated['sale_status'],
-                'payment_status'   => $validated['payment_status'],
-                'payment_method'   => $validated['payment_method'] ?? null,
-                'account_id'       => $validated['account_id'],
-                'delivery_status'  => $deliveryStatus,
-
-                'subtotal'         => $validated['subtotal'] ?? 0,
-                'tax_amount'       => $validated['tax_amount'] ?? 0,
-                'discount_amount'  => $validated['discount_amount'] ?? 0,
-                'shipping_amount'  => $validated['shipping_amount'] ?? 0,
-                'grand_total'      => $validated['grand_total'],
-                'paid_amount'      => $paidAmount,
-                'amount_paid'      => $paidAmount,
-                'due_amount'       => $dueAmount,
-                'amount_due'       => $dueAmount,
-
-                'notes'            => $validated['notes'] ?? null,
-                'created_by'       => auth()->id(),
-            ]);
-
-            Log::info('Sale created', [
-                'sale_id' => $sale->id,
-                'reference' => $sale->reference_number,
-                'customer_id' => $customerId,
-                'grand_total' => $validated['grand_total'],
-                'paid_amount' => $paidAmount,
-                'due_amount' => $dueAmount,
-            ]);
-
-            foreach ($validated['items'] as $item) {
-                $subtotal = ($item['quantity'] * $item['unit_price'])
-                    - ($item['discount'] ?? 0)
-                    + ($item['tax'] ?? 0);
-
-                $sale->items()->create([
-                    'product_id' => $item['product_id'],
-                    'quantity'   => $item['quantity'],
-                    'price'      => $item['unit_price'],
-                    'unit_price' => $item['unit_price'],
-                    'discount'   => $item['discount'] ?? 0,
-                    'tax'        => $item['tax'] ?? 0,
-                    'subtotal'   => $subtotal,
-                ]);
-
-                if ($validated['sale_status'] === 'completed') {
-                    $product = Product::lockForUpdate()->find($item['product_id']);
-
-                    if (!$product) {
-                        throw new \Exception("Product not found: {$item['product_id']}");
-                    }
-
-                    if ($product->stock < $item['quantity']) {
-                        throw new \Exception("Insufficient stock for {$product->name}");
-                    }
-
-                    $product->decrement('stock', $item['quantity']);
-                }
+        } elseif (strpos($validated['customer_id'], 'user_') === 0) {
+            $userId = (int) str_replace('user_', '', $validated['customer_id']);
+            $user = User::find($userId);
+            
+            if (!$user || $user->role !== 'Customer') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Selected user is not a customer'
+                ], 422);
             }
-
-            if ($customerRecord) {
-                $customerRecord->syncTotalDue();
-                
-                Log::info('Customer due synced after sale creation', [
-                    'customer_id' => $customerRecord->id,
-                    'customer_name' => $customerRecord->name,
-                    'total_due' => $customerRecord->total_due,
+            
+            $customerRecord = Customer::where('user_id', $userId)->first();
+            
+            if (!$customerRecord) {
+                $customerRecord = Customer::create([
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'phone' => $user->phone ?? '',
+                    'user_id' => $userId,
+                    'is_active' => true,
+                    'created_by' => auth()->id(),
                 ]);
             }
-
-            if ($paidAmount > 0 && !empty($validated['account_id'])) {
-                $account = \App\Models\Account::lockForUpdate()->find($validated['account_id']);
-                
-                if (!$account) {
-                    throw new \Exception("Account not found");
-                }
-
-                $balanceBefore = $account->current_balance;
-                $account->current_balance += $paidAmount;
-                $account->save();
-
-                \App\Models\AccountTransaction::create([
-                    'account_id'       => $account->id,
-                    'reference_type'   => 'sale',
-                    'reference_id'     => $sale->id,
-                    'transaction_type' => 'credit',
-                    'amount'           => $paidAmount,
-                    'balance_before'   => $balanceBefore,
-                    'balance_after'    => $account->current_balance,
-                    'description'      => "Sale payment - {$sale->reference_number}",
-                    'transaction_date' => $validated['sale_date'],
-                    'created_by'       => auth()->id(),
-                ]);
-
-                Log::info('Account transaction created', [
-                    'account_id' => $account->id,
-                    'amount' => $paidAmount,
-                    'balance_after' => $account->current_balance,
-                ]);
+            
+            $customerId = $customerRecord->id;
+        } else {
+            $customerId = (int) $validated['customer_id'];
+            $customerRecord = Customer::find($customerId);
+            
+            if (!$customerRecord) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Customer not found'
+                ], 422);
             }
-
-            DB::commit();
-
-            return response()->json([
-                'success'  => true,
-                'message'  => 'Sale created successfully',
-                'sale_id'  => $sale->id,
-                'redirect' => route('sales.index')
-            ]);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-
-            Log::error('SALE STORE ERROR: ' . $e->getMessage());
-            Log::error('Stack trace: ' . $e->getTraceAsString());
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Error: ' . $e->getMessage()
-            ], 500);
         }
     }
 
+    // ✅ Calculate amounts
+    $paidAmount = $validated['amount_paid'] ?? 0;
+    $dueAmount  = max(0, $validated['grand_total'] - $paidAmount);
+    $billerName = auth()->user()->name ?? 'Admin';
+    $deliveryStatus = $validated['delivery_status'] ?? null;
+    
+    if (!$deliveryStatus) {
+        $deliveryStatus = $validated['sale_status'] === 'completed' ? 'delivered' : 'pending';
+    }
+
+    DB::beginTransaction();
+
+    try {
+        // ✅ Generate reference number
+        $referenceNumber = $validated['reference_number'] ?? 'SAL-' . date('Ymd') . '-' . str_pad(
+            Sale::whereDate('created_at', date('Y-m-d'))->count() + 1,
+            4,
+            '0',
+            STR_PAD_LEFT
+        );
+
+        // ✅ Create sale record
+        $sale = Sale::create([
+            'reference_number' => $referenceNumber,
+            'sale_date'        => $validated['sale_date'],
+            'warehouse_id'     => $validated['warehouse_id'],
+            'customer_id'      => $customerId,
+
+            'biller'           => $billerName,
+            'sale_status'      => $validated['sale_status'],
+            'payment_status'   => $validated['payment_status'],
+            'payment_method'   => $validated['payment_method'] ?? null,
+            'account_id'       => $validated['account_id'],
+            'delivery_status'  => $deliveryStatus,
+
+            'subtotal'         => $validated['subtotal'] ?? 0,
+            'tax_amount'       => $validated['tax_amount'] ?? 0,
+            'discount_amount'  => $validated['discount_amount'] ?? 0,
+            'shipping_amount'  => $validated['shipping_amount'] ?? 0,
+            'grand_total'      => $validated['grand_total'],
+            'paid_amount'      => $paidAmount,
+            'amount_paid'      => $paidAmount,
+            'due_amount'       => $dueAmount,
+            'amount_due'       => $dueAmount,
+
+            'notes'            => $validated['notes'] ?? null,
+            'created_by'       => auth()->id(),
+        ]);
+
+        Log::info('Sale created', [
+            'sale_id' => $sale->id,
+            'reference' => $sale->reference_number,
+            'customer_id' => $customerId,
+            'grand_total' => $validated['grand_total'],
+            'paid_amount' => $paidAmount,
+            'due_amount' => $dueAmount,
+        ]);
+
+        // ✅ Process each item with stock validation
+        foreach ($validated['items'] as $item) {
+            // ✅ Lock product row for update
+            $product = Product::lockForUpdate()->find($item['product_id']);
+            
+            if (!$product) {
+                throw new \Exception("Product not found: {$item['product_id']}");
+            }
+            
+            // ✅ Validate stock for completed sales BEFORE creating sale item
+            if ($validated['sale_status'] === 'completed') {
+                if ($product->stock < $item['quantity']) {
+                    throw new \Exception(
+                        "❌ Insufficient stock for '{$product->name}'. Available: {$product->stock}, Requested: {$item['quantity']}"
+                    );
+                }
+            }
+            
+            // ✅ Calculate item subtotal
+            $subtotal = ($item['quantity'] * $item['unit_price'])
+                - ($item['discount'] ?? 0)
+                + ($item['tax'] ?? 0);
+
+            // ✅ Create sale item
+            $sale->items()->create([
+                'product_id' => $item['product_id'],
+                'quantity'   => $item['quantity'],
+                'price'      => $item['unit_price'],
+                'unit_price' => $item['unit_price'],
+                'discount'   => $item['discount'] ?? 0,
+                'tax'        => $item['tax'] ?? 0,
+                'subtotal'   => $subtotal,
+            ]);
+
+            // ✅ Deduct stock ONLY for completed sales
+            if ($validated['sale_status'] === 'completed') {
+                $product->decrement('stock', $item['quantity']);
+                
+                Log::info('Stock deducted', [
+                    'product_id' => $product->id,
+                    'product_name' => $product->name,
+                    'quantity_sold' => $item['quantity'],
+                    'remaining_stock' => $product->fresh()->stock,
+                ]);
+            }
+        }
+
+        // ✅ Sync customer total due
+        if ($customerRecord) {
+            $customerRecord->syncTotalDue();
+            
+            Log::info('Customer due synced after sale creation', [
+                'customer_id' => $customerRecord->id,
+                'customer_name' => $customerRecord->name,
+                'total_due' => $customerRecord->total_due,
+            ]);
+        }
+
+        // ✅ Create account transaction for paid amount
+        if ($paidAmount > 0 && !empty($validated['account_id'])) {
+            $account = \App\Models\Account::lockForUpdate()->find($validated['account_id']);
+            
+            if (!$account) {
+                throw new \Exception("Account not found");
+            }
+
+            // ✅ Update account balance
+            $balanceBefore = $account->current_balance;
+            $account->current_balance += $paidAmount;
+            $account->save();
+
+            // ✅ Create transaction record
+            \App\Models\AccountTransaction::create([
+                'account_id'       => $account->id,
+                'reference_type'   => 'sale',
+                'reference_id'     => $sale->id,
+                'transaction_type' => 'credit',
+                'amount'           => $paidAmount,
+                'balance_before'   => $balanceBefore,
+                'balance_after'    => $account->current_balance,
+                'description'      => "Sale payment - {$sale->reference_number}",
+                'transaction_date' => $validated['sale_date'],
+                'created_by'       => auth()->id(),
+            ]);
+
+            Log::info('Account transaction created', [
+                'account_id' => $account->id,
+                'account_name' => $account->name,
+                'amount' => $paidAmount,
+                'balance_before' => $balanceBefore,
+                'balance_after' => $account->current_balance,
+            ]);
+        }
+
+        // ✅ Commit transaction
+        DB::commit();
+
+        Log::info('Sale completed successfully', [
+            'sale_id' => $sale->id,
+            'reference' => $sale->reference_number,
+            'total_items' => count($validated['items']),
+        ]);
+
+        return response()->json([
+            'success'  => true,
+            'message'  => 'Sale created successfully',
+            'sale_id'  => $sale->id,
+            'redirect' => route('sales.index')
+        ]);
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+
+        Log::error('SALE STORE ERROR: ' . $e->getMessage(), [
+            'user_id' => auth()->id(),
+            'request_data' => $request->all(),
+            'stack_trace' => $e->getTraceAsString(),
+        ]);
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Error: ' . $e->getMessage()
+        ], 500);
+    }
+}
     public function show(Sale $sale)
     {
         $sale->load(['warehouse', 'customer', 'creator', 'items.product']);
