@@ -91,6 +91,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/pos/set-customer', [POSController::class, 'setCustomer'])->name('pos.set.customer');
     Route::post('/pos/store', [POSController::class, 'store'])->name('pos.store');
     Route::post('/complete-sale', [POSController::class, 'store'])->name('pos.complete-sale');
+    Route::get('/pos/warehouse-stock/{warehouse}', [POSController::class, 'warehouseStock']);
+
 
     // Sale Returns
     Route::get('/sale-returns/get-items/{sale}', [SaleReturnController::class, 'getSaleItems'])->name('sale-returns.get-items');

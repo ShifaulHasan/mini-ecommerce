@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 
 // Models
+use App\Models\ProductWarehouse;
+
 use App\Models\Product;
 use App\Models\Category;
 use App\Models\User;
@@ -22,27 +24,33 @@ class POSController extends Controller
     /**
      * POS main page - loads products, categories, customers, main warehouse
      */
-    public function index()
-    {
-        $mainWarehouse = Warehouse::first();
-        
-        // 🔥 FIXED: Get customers from User model with role = Customer
-        $customers = User::where('role', 'Customer')
-            ->orderBy('name', 'ASC')
-            ->get();
-            
-        $categories = Category::orderBy('name')->get();
-        $products = Product::select('id', 'name', 'price', 'stock', 'image', 'category_id')->get();
-        $accounts = Account::where('status', 'active')->get();
+   public function index()
+{
+    // Default warehouse (first one)
+    $mainWarehouse = Warehouse::orderBy('id')->first();
 
-        return view('pos.index', compact(
-            'mainWarehouse',
-            'customers',
-            'products',
-            'categories',
-            'accounts'
-        ));
-    }
+    // All warehouses for dropdown
+    $warehouses = Warehouse::orderBy('name')->get();
+
+    // Customers
+    $customers = User::where('role', 'Customer')
+        ->orderBy('name')
+        ->get();
+
+    // Categories
+    $categories = Category::orderBy('name')->get();
+
+    // Products
+    $products = Product::orderBy('name')->get();
+
+    return view('pos.index', compact(
+        'products',
+        'categories',
+        'customers',
+        'warehouses',
+        'mainWarehouse'
+    ));
+}
 
     /**
      * Return current cart (useful for AJAX refresh)
@@ -228,197 +236,203 @@ class POSController extends Controller
         return response()->json(['success' => true, 'customer_id' => session('pos_customer_id')]);
     }
 
-    /**
-     * Store the sale (complete checkout)
-     * Route: POST /pos/store
-     */
-    public function store(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'warehouse_id'   => 'nullable|integer|exists:warehouses,id',
-            'customer_id'    => 'nullable|integer|exists:users,id', // 🔥 FIXED: Changed to users, made nullable
-            'products'       => 'required|array|min:1',
-            'products.*.product_id' => 'required|integer|exists:products,id',
-            'products.*.quantity'   => 'required|integer|min:1',
-            'products.*.unit_price' => 'required|numeric|min:0',
-            'payment_method' => 'required|string',
-            'account_id'     => 'nullable|integer|exists:accounts,id', // Made nullable
-            'amount_paid'    => 'nullable|numeric|min:0',
-            'tax_percentage' => 'nullable|numeric|min:0',
-            'discount_amount'=> 'nullable|numeric|min:0',
+   /**
+ * Store the sale (complete checkout)
+ * Route: POST /pos/store
+ */
+public function store(Request $request)
+{
+    $validator = Validator::make($request->all(), [
+        'warehouse_id'   => 'nullable|integer|exists:warehouses,id',
+        'customer_id'    => 'nullable|integer|exists:users,id',
+        'products'       => 'required|array|min:1',
+        'products.*.product_id' => 'required|integer|exists:products,id',
+        'products.*.quantity'   => 'required|integer|min:1',
+        'products.*.unit_price' => 'required|numeric|min:0',
+        'payment_method' => 'required|string',
+        'account_id'     => 'nullable|integer|exists:accounts,id',
+        'amount_paid'    => 'nullable|numeric|min:0',
+        'tax_percentage' => 'nullable|numeric|min:0',
+        'discount_amount'=> 'nullable|numeric|min:0',
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
+    }
+
+    // Validate customer role if provided
+    if (!empty($request->customer_id)) {
+        $customer = User::find($request->customer_id);
+        if (!$customer || $customer->role !== 'Customer') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Selected user is not a customer'
+            ], 422);
+        }
+    }
+
+    $cart = $request->products;
+    if (empty($cart)) {
+        return response()->json(['success' => false, 'message' => 'Cart empty.'], 400);
+    }
+
+    DB::beginTransaction();
+    try {
+        // Re-check stock
+        foreach ($cart as $item) {
+            $p = Product::lockForUpdate()->find($item['product_id']);
+            if (!$p) {
+                DB::rollBack();
+                return response()->json(['success' => false, 'message' => 'Product not found: ID '.$item['product_id']], 404);
+            }
+            if (($p->stock ?? 0) < $item['quantity']) {
+                DB::rollBack();
+                return response()->json(['success' => false, 'message' => 'Insufficient stock for '.$p->name], 400);
+            }
+        }
+
+        $referenceNumber = 'SAL-' . date('Ymd') . '-' . strtoupper(Str::random(4));
+        $currentDateTime = now();
+
+        // Calculate totals
+        $subtotal = 0;
+        foreach ($cart as $item) {
+            $lineTotal = ($item['unit_price'] * $item['quantity']) - ($item['discount'] ?? 0);
+            $subtotal += $lineTotal;
+        }
+
+        $taxAmount = ($subtotal * ($request->tax_percentage ?? 0)) / 100;
+        $discountAmount = $request->discount_amount ?? 0;
+        $grandTotal = $subtotal + $taxAmount - $discountAmount;
+        $amountPaid = (float) ($request->amount_paid ?? $grandTotal);
+        $dueAmount = max(0, $grandTotal - $amountPaid);
+
+        $paymentStatus = $amountPaid >= $grandTotal ? 'paid' : ($amountPaid > 0 ? 'partial' : 'pending');
+        $billerName = auth()->user()->name ?? 'POS User';
+
+        // 1️⃣ CREATE THE SALE FIRST
+        $sale = Sale::create([
+            'reference_number' => $referenceNumber,
+            'customer_id'      => $request->customer_id,
+            'warehouse_id'     => $request->warehouse_id,
+            'biller'           => $billerName,
+            'sale_date'        => $currentDateTime->format('Y-m-d'),
+            'grand_total'      => $grandTotal,
+            'paid_amount'      => $amountPaid,
+            'due_amount'       => $dueAmount,
+            'sale_status'      => 'completed',
+            'payment_status'   => $paymentStatus,
+            'payment_method'   => $request->payment_method,
+            'account_id'       => $request->account_id,
+            'created_by'       => auth()->id(),
+            'created_at'       => $currentDateTime,
+            'updated_at'       => $currentDateTime,
         ]);
 
-        if ($validator->fails()) {
-            return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
-        }
+        // 2️⃣ CREATE SALE ITEMS AND DEDUCT WAREHOUSE STOCK
+        foreach ($cart as $item) {
+            $p = Product::lockForUpdate()->find($item['product_id']);
+            $quantity = (int)$item['quantity'];
 
-        // 🔥 FIXED: Validate customer role if provided
-        if (!empty($request->customer_id)) {
-            $customer = User::find($request->customer_id);
-            if (!$customer || $customer->role !== 'Customer') {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Selected user is not a customer'
-                ], 422);
-            }
-        }
-
-        $cart = $request->products;
-        if (empty($cart)) {
-            return response()->json(['success' => false, 'message' => 'Cart empty.'], 400);
-        }
-
-        DB::beginTransaction();
-        try {
-            // Re-check stock
-            foreach ($cart as $item) {
-                $p = Product::lockForUpdate()->find($item['product_id']);
-                if (!$p) {
-                    DB::rollBack();
-                    return response()->json(['success' => false, 'message' => 'Product not found: ID '.$item['product_id']], 404);
-                }
-                if (($p->stock ?? 0) < $item['quantity']) {
-                    DB::rollBack();
-                    return response()->json(['success' => false, 'message' => 'Insufficient stock for '.$p->name], 400);
-                }
-            }
-
-            $referenceNumber = 'SAL-' . date('Ymd') . '-' . strtoupper(Str::random(4));
-            $currentDateTime = now();
-
-            // Calculate totals
-            $subtotal = 0;
-            foreach ($cart as $item) {
-                $lineTotal = ($item['unit_price'] * $item['quantity']) - ($item['discount'] ?? 0);
-                $subtotal += $lineTotal;
-            }
-
-            $taxAmount = ($subtotal * ($request->tax_percentage ?? 0)) / 100;
-            $discountAmount = $request->discount_amount ?? 0;
-            $grandTotal = $subtotal + $taxAmount - $discountAmount;
-            $amountPaid = (float) ($request->amount_paid ?? $grandTotal);
-            $dueAmount = max(0, $grandTotal - $amountPaid);
-
-            // Determine payment status
-            if ($amountPaid >= $grandTotal) {
-                $paymentStatus = 'paid';
-            } elseif ($amountPaid > 0) {
-                $paymentStatus = 'partial';
-            } else {
-                $paymentStatus = 'pending';
-            }
-
-            // 🔥 Get biller name (logged-in user)
-            $billerName = auth()->user()->name ?? 'POS User';
-
-            // Create sale
-            $sale = Sale::create([
-                'reference_number' => $referenceNumber,
-                'customer_id'      => $request->customer_id, // Can be null for walk-in
-                'warehouse_id'     => $request->warehouse_id,
-                'biller'           => $billerName, // 🔥 FIXED: Added biller
-                'sale_date'        => $currentDateTime->format('Y-m-d'),
-                'grand_total'      => $grandTotal,
-                'returned_amount'  => 0.00,
-                'paid_amount'      => $amountPaid,
-                'due_amount'       => $dueAmount,
-                'sale_status'      => 'completed',
-                'payment_status'   => $paymentStatus,
-                'payment_method'   => $request->payment_method,
-                'account_id'       => $request->account_id,
-                'sale_type'        => 'regular',
-                'delivery_status'  => 'delivered', // 🔥 FIXED: Added delivery_status
-                'notes'            => $request->notes ?? null,
-                'created_by'       => auth()->id(), // 🔥 FIXED: Added created_by
-                'created_at'       => $currentDateTime,
-                'updated_at'       => $currentDateTime,
+            SaleItem::create([
+                'sale_id'    => $sale->id,
+                'product_id' => $p->id,
+                'quantity'   => $quantity,
+                'price'      => $item['unit_price'],
+                'unit_price' => $item['unit_price'],
+                'discount'   => $item['discount'] ?? 0,
+                'tax'        => 0,
+                'subtotal'   => ($item['unit_price'] * $quantity) - ($item['discount'] ?? 0),
+                'created_at' => $currentDateTime,
+                'updated_at' => $currentDateTime,
             ]);
 
-            // Create sale items
-            foreach ($cart as $item) {
-                $p = Product::find($item['product_id']);
-                $unitPrice = $item['unit_price'];
-                $quantity = $item['quantity'];
-                $discount = $item['discount'] ?? 0;
-                $lineSubtotal = ($unitPrice * $quantity) - $discount;
+            // Deduct warehouse stock
+            $stockRow = ProductWarehouse::where('product_id', $p->id)
+                ->where('warehouse_id', $request->warehouse_id)
+                ->lockForUpdate()
+                ->first();
 
-                SaleItem::create([
-                    'sale_id'    => $sale->id,
-                    'product_id' => $p->id,
-                    'quantity'   => $quantity,
-                    'price'      => $unitPrice,
-                    'unit_price' => $unitPrice, // Some systems use this
-                    'discount'   => $discount,
-                    'tax'        => 0,
-                    'subtotal'   => $lineSubtotal,
-                    'created_at' => $currentDateTime,
-                    'updated_at' => $currentDateTime,
+            if (!$stockRow) throw new \Exception('Warehouse stock not found for product ID ' . $p->id);
+            if ($stockRow->quantity < $quantity) throw new \Exception('Insufficient warehouse stock for ' . $p->name);
+
+            $stockRow->quantity -= $quantity;
+            $stockRow->save();
+        }
+
+        // 3️⃣ Update account balance & create transaction
+        if ($amountPaid > 0 && $request->account_id) {
+            $account = Account::lockForUpdate()->find($request->account_id);
+            if ($account) {
+                $balanceBefore = $account->current_balance;
+                $account->current_balance += $amountPaid;
+                $account->save();
+
+                \App\Models\AccountTransaction::create([
+                    'account_id'       => $account->id,
+                    'reference_type'   => 'sale',
+                    'reference_id'     => $sale->id,
+                    'transaction_type' => 'credit',
+                    'amount'           => $amountPaid,
+                    'balance_before'   => $balanceBefore,
+                    'balance_after'    => $account->current_balance,
+                    'description'      => "POS Sale - {$referenceNumber}",
+                    'transaction_date' => $currentDateTime->format('Y-m-d'),
+                    'created_by'       => auth()->id(),
                 ]);
 
-                // Reduce stock
-                $p->stock = max(0, ($p->stock ?? 0) - $quantity);
-                $p->save();
+                \Log::info('POS Sale Transaction Created', [
+                    'sale_id' => $sale->id,
+                    'reference_number' => $referenceNumber,
+                    'account_id' => $account->id,
+                    'amount' => $amountPaid,
+                ]);
             }
+        }
 
-           // Update account balance & create transaction
-if ($amountPaid > 0 && $request->account_id) {
-    $account = Account::lockForUpdate()->find($request->account_id);
-    
-    if ($account) {
-        // Store balance before update
-        $balanceBefore = $account->current_balance;
+        DB::commit();
 
-        // Increase account balance
-        $account->current_balance += $amountPaid;
-        $account->save();
+        // Clear session
+        session(['pos_cart' => []]);
+        session()->forget('pos_customer_id');
 
-        // 🔥 CRITICAL FIX: Create transaction record with correct field names
-        \App\Models\AccountTransaction::create([
-            'account_id'       => $account->id,
-            'reference_type'   => 'sale',
-            'reference_id'     => $sale->id,
-            'transaction_type' => 'credit',
-            'amount'           => $amountPaid,
-            'balance_before'   => $balanceBefore,
-            'balance_after'    => $account->current_balance,
-            'description'      => "POS Sale - {$referenceNumber}",
-            'transaction_date' => $currentDateTime->format('Y-m-d'),
-            'created_by'       => auth()->id(),
-        ]);
-
-        // 🔥 LOG for debugging
-        \Log::info('POS Sale Transaction Created', [
+        return response()->json([
+            'success' => true,
+            'reference_no' => $referenceNumber,
             'sale_id' => $sale->id,
-            'reference_number' => $referenceNumber,
-            'account_id' => $account->id,
-            'amount' => $amountPaid,
-            'transaction_date' => $currentDateTime->format('Y-m-d'),
+            'change' => max(0, $amountPaid - $grandTotal),
+            'message' => 'Sale completed successfully!',
         ]);
+
+    } catch (\Throwable $e) {
+        DB::rollBack();
+        \Log::error('POS Sale Error: ' . $e->getMessage());
+        return response()->json([
+            'success' => false, 
+            'message' => 'Server error: ' . $e->getMessage()
+        ], 500);
     }
 }
 
-            DB::commit();
 
-            // Clear session cart
-            session(['pos_cart' => []]);
-            session()->forget('pos_customer_id');
+    /**
+ * Get products stock by warehouse
+ * URL: GET /pos/warehouse-stock/{warehouseId}
+ */
+public function warehouseStock($warehouseId)
+{
+    $stocks = \DB::table('product_warehouse')
+        ->where('warehouse_id', $warehouseId)
+        ->select('product_id', \DB::raw('SUM(quantity) as qty'))
+        ->groupBy('product_id')
+        ->pluck('qty', 'product_id');
 
-            return response()->json([
-                'success' => true,
-                'reference_no' => $referenceNumber,
-                'change' => max(0, $amountPaid - $grandTotal),
-                'sale_id' => $sale->id,
-                'message' => 'Sale completed successfully!',
-            ]);
-        } catch (\Throwable $e) {
-            DB::rollBack();
-            \Log::error('POS Sale Error: ' . $e->getMessage());
-            return response()->json([
-                'success' => false, 
-                'message' => 'Server error: ' . $e->getMessage()
-            ], 500);
-        }
-    }
+    return response()->json([
+        'success' => true,
+        'stocks' => $stocks
+    ]);
+}
+
 
     /**
      * Helper: compute summary totals (used for cart preview)

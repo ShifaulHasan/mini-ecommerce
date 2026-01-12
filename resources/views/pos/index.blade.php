@@ -57,6 +57,16 @@ body { font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:#
 .numpad-btn { padding:20px; font-size:24px; font-weight:600; border:2px solid #dee2e6; background:white; border-radius:10px; cursor:pointer; transition:all .2s; }
 .numpad-btn:hover { background:#667eea; color:white; border-color:#667eea; }
 .numpad-btn.clear { background:#dc3545; color:white; border-color:#dc3545; }
+.out-of-stock {
+    color: #dc3545;
+    font-weight: 700;
+}
+
+.product-card.out {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
 </style>
 </head>
 <body>
@@ -90,7 +100,10 @@ body { font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:#
                     @endif
                 </div>
                 <div class="product-name">{{ $product->name }}</div>
-                <div class="product-stock">Stock: {{ $product->stock ?? 0 }}</div>
+                <div class="product-stock" id="stock-{{ $product->id }}">
+    Stock: 0
+</div>
+
                 <div class="product-price">৳{{ number_format($product->price ?? 0,2) }}</div>
                 <button class="btn btn-primary btn-sm mt-2" onclick="addToCart({{ $product->id }})">Add</button>
             </div>
@@ -101,15 +114,27 @@ body { font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:#
     <!-- Cart Panel -->
     <div class="cart-panel">
         <div class="cart-header"><h5><i class="bi bi-cart3"></i> Current Sale</h5></div>
-        <div class="customer-section">
-            <label class="fw-bold mb-2">Customer</label>
-            <select id="customerId" class="form-select">
-                <option value="">Walk-in Customer</option>
-                @foreach($customers as $customer)
-                <option value="{{ $customer->id }}">{{ $customer->name }}</option>
-                @endforeach
-            </select>
-        </div>
+       <div class="customer-section">
+    <label class="fw-bold mb-2">Customer</label>
+    <select id="customerId" class="form-select mb-2">
+        <option value="">Walk-in Customer</option>
+        @foreach($customers as $customer)
+            <option value="{{ $customer->id }}">{{ $customer->name }}</option>
+        @endforeach
+    </select>
+
+    <!-- 🔥 Warehouse Select -->
+    <label class="fw-bold mb-2 mt-2">Warehouse</label>
+    <select id="warehouseSelect" class="form-select">
+        @foreach($warehouses as $warehouse)
+            <option value="{{ $warehouse->id }}"
+                {{ $mainWarehouse && $mainWarehouse->id == $warehouse->id ? 'selected' : '' }}>
+                {{ $warehouse->name }}
+            </option>
+        @endforeach
+    </select>
+</div>
+
         <div class="cart-items" id="cartItems">
             <div class="empty-cart">
                 <i class="bi bi-cart-x" style="font-size:48px;"></i>
@@ -607,10 +632,51 @@ document.querySelectorAll('.category-btn').forEach(btn => {
     });
 });
 
-// Initial fetch on page load
-document.addEventListener('DOMContentLoaded', function() {
-    fetchCart();
+// Load stock by warehouse
+document.getElementById('warehouseSelect').addEventListener('change', function () {
+    warehouseId = this.value;
+    loadWarehouseStock(warehouseId);
 });
+function loadWarehouseStock(warehouseId) {
+    fetch(`{{ url('/pos/warehouse-stock') }}/${warehouseId}`)
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                document.querySelectorAll('.product-card').forEach(card => {
+                    const productId = parseInt(card.getAttribute('data-id'));
+                    const stock = data.stocks[productId] ?? 0;
+
+                    const stockDiv = document.getElementById('stock-' + productId);
+                    const btn = card.querySelector('button');
+
+                    if (stock <= 0) {
+                        // ❌ OUT OF STOCK
+                        stockDiv.innerHTML = '<span class="out-of-stock">Out of Stock</span>';
+                        btn.disabled = true;
+                        card.classList.add('out');
+                    } else {
+                        // ✅ IN STOCK
+                        stockDiv.innerHTML = 'Stock: ' + stock;
+                        btn.disabled = false;
+                        card.classList.remove('out');
+                    }
+                });
+            }
+        })
+        .catch(err => console.error('Stock load error:', err));
+}
+
+
+
+// Initial fetch on page load
+document.addEventListener('DOMContentLoaded', function () {
+    fetchCart();
+
+    if (warehouseId) {
+        loadWarehouseStock(warehouseId);
+    }
+});
+
 </script>
 
 

@@ -109,14 +109,14 @@
                     </div>
 
                     <!-- Stock -->
-                    <div class="col-md-12">
+                    <!-- <div class="col-md-12">
                         <label class="form-label">Initial Stock <span class="text-danger">*</span></label>
                         <input type="number" name="stock" class="form-control @error('stock') is-invalid @enderror" 
                                value="{{ old('stock', 0) }}" required>
                         @error('stock')
                         <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
-                    </div>
+                    </div> -->
 
                     <!-- Description -->
                     <div class="col-md-12">

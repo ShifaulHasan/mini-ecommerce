@@ -114,14 +114,14 @@
                     </div>
 
                     <!-- Stock (Read-only with note) -->
-                    <div class="col-md-12">
+                    <!-- <div class="col-md-12">
                         <label class="form-label">Current Stock</label>
                         <input type="number" name="stock" class="form-control" 
                                value="{{ $product->stock }}" readonly>
                         <small class="text-muted">
                             <i class="bi bi-info-circle"></i> Use Stock Adjustments to modify stock levels
                         </small>
-                    </div>
+                    </div> -->
 
                     <!-- Description -->
                     <div class="col-md-12">

@@ -91,10 +91,10 @@
     
     <div class="brand-text" style="margin-top: 12px;">
         <div class="brand-name" style="font-size: 17px; font-weight: 700; color: #ffffff; margin: 0 0 6px 0; line-height: 1.4; letter-spacing: -0.01em;">
-            Inventory Management Software And
+            Inventory Management Software 
         </div>
         <div class="brand-tagline" style="font-size: 13px; font-weight: 500; color: rgba(255, 255, 255, 0.75); margin: 0; line-height: 1.5; letter-spacing: 0.01em;">
-            Smart Billing System With E-Commerce
+           and Smart Billing System With E-Commerce
         </div>
     </div>
 </div>
