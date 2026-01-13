@@ -206,7 +206,7 @@ class ReportController extends Controller
         return view('reports.adjustments', compact('adjustments', 'products'));
     }
 
-    // Payment Report
+    // Payment Report - FIXED VERSION
     public function paymentReport(Request $request)
     {
         $query = "
@@ -220,10 +220,17 @@ class ReportController extends Controller
                 at.payment_method,
                 at.description,
                 a.name as account_name,
-                u.name as created_by_name
+                u.name as created_by_name,
+                CASE 
+                    WHEN at.reference_type = 'sale' THEN s.payment_method
+                    WHEN at.reference_type = 'purchase' THEN p.payment_method
+                    ELSE at.payment_method
+                END as actual_payment_method
             FROM account_transactions at
             JOIN accounts a ON a.id = at.account_id
             LEFT JOIN users u ON u.id = at.created_by
+            LEFT JOIN sales s ON s.id = at.reference_id AND at.reference_type = 'sale'
+            LEFT JOIN purchases p ON p.id = at.reference_id AND at.reference_type = 'purchase'
             WHERE 1=1
         ";
         
@@ -351,5 +358,99 @@ class ReportController extends Controller
         ];
 
         return view('reports.suppliers', compact('suppliers', 'totals'));
+    }
+
+    // Profit Report
+    public function profitReport(Request $request)
+    {
+        // Build date filter for sales
+        $dateConditions = [];
+        $params = [];
+        
+        if ($request->filled('start_date')) {
+            $dateConditions[] = "s.sale_date >= ?";
+            $params[] = $request->start_date;
+        }
+        
+        if ($request->filled('end_date')) {
+            $dateConditions[] = "s.sale_date <= ?";
+            $params[] = $request->end_date;
+        }
+        
+        $dateFilter = !empty($dateConditions) ? 'AND ' . implode(' AND ', $dateConditions) : '';
+
+        $query = "
+            SELECT 
+                p.id as product_id,
+                p.product_code,
+                p.name as product_name,
+                p.stock as current_stock,
+                
+                -- Purchase Data
+                COALESCE(purchase_data.purchase_qty, 0) as purchase_qty,
+                COALESCE(purchase_data.purchase_amount, 0) as purchase_amount,
+                COALESCE(purchase_data.avg_cost, 0) as avg_cost,
+                
+                -- Sales Data
+                COALESCE(sale_data.sold_qty, 0) as sold_qty,
+                COALESCE(sale_data.sales_amount, 0) as sales_amount,
+                
+                -- Correct Profit Calculation (Sales - Cost of Goods Sold)
+                COALESCE(sale_data.sales_amount, 0) - (COALESCE(sale_data.sold_qty, 0) * COALESCE(purchase_data.avg_cost, 0)) as profit
+                
+            FROM products p
+            
+            -- Purchase Subquery with Average Cost
+            LEFT JOIN (
+                SELECT 
+                    pi.product_id,
+                    SUM(pi.quantity) as purchase_qty,
+                    SUM(pi.quantity * pi.cost_price) as purchase_amount,
+                    SUM(pi.quantity * pi.cost_price) / NULLIF(SUM(pi.quantity), 0) as avg_cost
+                FROM purchase_items pi
+                JOIN purchases pur ON pur.id = pi.purchase_id
+                WHERE pur.purchase_status IN ('completed', 'received')
+                GROUP BY pi.product_id
+            ) as purchase_data ON purchase_data.product_id = p.id
+            
+            -- Sales Subquery with Date Filter
+            LEFT JOIN (
+                SELECT 
+                    si.product_id,
+                    SUM(si.quantity) as sold_qty,
+                    SUM(si.subtotal) as sales_amount
+                FROM sale_items si
+                JOIN sales s ON s.id = si.sale_id
+                WHERE s.sale_status = 'completed'
+                $dateFilter
+                GROUP BY si.product_id
+            ) as sale_data ON sale_data.product_id = p.id
+            
+            WHERE p.status = 'active'
+        ";
+
+        // Product Filter
+        if ($request->filled('product_id')) {
+            $query .= " AND p.id = ?";
+            $params[] = $request->product_id;
+        }
+
+        $query .= " 
+            HAVING purchase_qty > 0 OR sold_qty > 0
+            ORDER BY profit DESC
+        ";
+
+        $profits = DB::select($query, $params);
+
+        // Calculate Totals
+        $totals = [
+            'purchase_amount' => array_sum(array_column($profits, 'purchase_amount')),
+            'sales_amount' => array_sum(array_column($profits, 'sales_amount')),
+            'profit' => array_sum(array_column($profits, 'profit')),
+        ];
+
+        $products = DB::select("SELECT id, name FROM products WHERE status = 'active' ORDER BY name");
+
+        return view('reports.profit', compact('profits', 'totals', 'products'));
     }
 }

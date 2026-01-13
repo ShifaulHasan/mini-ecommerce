@@ -238,6 +238,12 @@
             <a class="nav-link text-white-50 ms-4" href="{{ route('reports.suppliers') }}">
                 <i class="bi bi-truck"></i> Supplier Report
             </a>
+         @can('view profitreports')
+            <a class="nav-link text-white-50 ms-4" href="{{ route('reports.profit') }}">
+    <i class="bi bi-graph-up"></i> Profit Report
+</a>
+            @endcan
+
         </div>
         @endcan
 

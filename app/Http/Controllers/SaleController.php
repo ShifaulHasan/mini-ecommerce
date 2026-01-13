@@ -26,61 +26,97 @@ class SaleController extends Controller
     }
 
     public function create()
-    {
-        $referenceNo = Sale::generateReferenceNo();
+{
+    $referenceNo = Sale::generateReferenceNo();
 
-        $products   = Product::all();
-        $warehouses = Warehouse::all();
-        
-        $customers = collect();
-        
-        try {
-            $customersFromTable = Customer::where('is_active', true)
-                ->select('id', 'name', 'email', 'phone', 'company_name')
-                ->get()
-                ->map(function($customer) {
-                    $displayName = $customer->name;
-                    if ($customer->company_name) {
-                        $displayName .= ' (' . $customer->company_name . ')';
-                    }
-                    return (object)[
-                        'id' => 'customer_' . $customer->id,
-                        'name' => $displayName,
-                        'email' => $customer->email ?? '',
-                        'phone' => $customer->phone ?? '',
-                        'type' => 'customer'
-                    ];
-                });
-            $customers = $customers->merge($customersFromTable);
-        } catch (\Exception $e) {
-            Log::warning('Could not load customers from Customer table: ' . $e->getMessage());
-        }
-        
-        $usersAsCustomers = User::where('role', 'Customer')
-            ->select('id', 'name', 'email')
+    // ✅ Add empty products array to prevent error
+    $products = collect(); // Empty collection
+    
+    $warehouses = Warehouse::all();
+    
+    $customers = collect();
+    
+    try {
+        $customersFromTable = Customer::where('is_active', true)
+            ->select('id', 'name', 'email', 'phone', 'company_name')
             ->get()
-            ->map(function($user) {
+            ->map(function($customer) {
+                $displayName = $customer->name;
+                if ($customer->company_name) {
+                    $displayName .= ' (' . $customer->company_name . ')';
+                }
                 return (object)[
-                    'id' => 'user_' . $user->id,
-                    'name' => $user->name . ' [User Account]',
-                    'email' => $user->email ?? '',
-                    'type' => 'user'
+                    'id' => 'customer_' . $customer->id,
+                    'name' => $displayName,
+                    'email' => $customer->email ?? '',
+                    'phone' => $customer->phone ?? '',
+                    'type' => 'customer'
                 ];
             });
-        
-        $customers = $customers->merge($usersAsCustomers);
-        
-        $accounts = \App\Models\Account::where('status', 'active')->get();
+        $customers = $customers->merge($customersFromTable);
+    } catch (\Exception $e) {
+        Log::warning('Could not load customers from Customer table: ' . $e->getMessage());
+    }
+    
+    $usersAsCustomers = User::where('role', 'Customer')
+        ->select('id', 'name', 'email')
+        ->get()
+        ->map(function($user) {
+            return (object)[
+                'id' => 'user_' . $user->id,
+                'name' => $user->name . ' [User Account]',
+                'email' => $user->email ?? '',
+                'type' => 'user'
+            ];
+        });
+    
+    $customers = $customers->merge($usersAsCustomers);
+    
+    $accounts = \App\Models\Account::where('status', 'active')->get();
 
-        return view('sales.create', compact(
-            'referenceNo',
-            'products',
-            'warehouses',
-            'customers',
-            'accounts'
-        ));
+    return view('sales.create', compact(
+        'referenceNo',
+        'products',      // ✅ Pass empty products
+        'warehouses',
+        'customers',
+        'accounts'
+    ));
+}
+    // ✅ NEW: Get products by warehouse (AJAX endpoint)
+   public function getProductsByWarehouse(Request $request)
+{
+    $warehouseId = $request->warehouse_id;
+
+    if (!$warehouseId) {
+        return response()->json(['products' => []]);
     }
 
+    // ✅ FIXED: Removed selling_price from query
+    $products = DB::table('product_warehouse')
+        ->join('products', 'product_warehouse.product_id', '=', 'products.id')
+        ->where('product_warehouse.warehouse_id', $warehouseId)
+        ->where('product_warehouse.quantity', '>', 0)
+        ->select(
+            'products.id',
+            'products.name',
+            'products.price',
+            DB::raw('SUM(product_warehouse.quantity) as warehouse_stock')
+        )
+        ->groupBy('products.id', 'products.name', 'products.price')
+        ->get();
+
+    return response()->json([
+        'products' => $products->map(function($product) {
+            return [
+                'id' => $product->id,
+                'name' => $product->name,
+                'code' => 'PRD-' . $product->id,
+                'price' => $product->price ?? 0,
+                'stock' => $product->warehouse_stock
+            ];
+        })
+    ]);
+}
     public function store(Request $request)
     {
         if ($request->isJson()) {
@@ -233,16 +269,15 @@ class SaleController extends Controller
                 'due_amount' => $dueAmount,
             ]);
 
-            // ✅ Process each item with warehouse stock validation
+            // Process each item with warehouse stock validation
             foreach ($validated['items'] as $item) {
-                // Lock product row for update
                 $product = Product::lockForUpdate()->find($item['product_id']);
                 
                 if (!$product) {
                     throw new \Exception("Product not found: {$item['product_id']}");
                 }
                 
-                // ✅ Validate warehouse-specific stock for completed sales
+                // Validate warehouse-specific stock for completed sales
                 if ($validated['sale_status'] === 'completed') {
                     $availableStock = \App\Models\ProductWarehouse::getAvailableStock(
                         $validated['warehouse_id'],
@@ -272,16 +307,14 @@ class SaleController extends Controller
                     'subtotal'   => $subtotal,
                 ]);
 
-                // ✅ Deduct warehouse-specific stock for completed sales
+                // Deduct warehouse-specific stock for completed sales
                 if ($validated['sale_status'] === 'completed') {
-                    // Remove from product_warehouse (FIFO)
                     \App\Models\ProductWarehouse::removeStock(
                         $validated['warehouse_id'],
                         $item['product_id'],
                         $item['quantity']
                     );
 
-                    // Decrease global stock
                     $product->decrement('stock', $item['quantity']);
                     
                     Log::info('Warehouse stock deducted', [
@@ -308,7 +341,7 @@ class SaleController extends Controller
                 ]);
             }
 
-            // Create account transaction for paid amount
+            // Create account transaction
             if ($paidAmount > 0 && !empty($validated['account_id'])) {
                 $account = \App\Models\Account::lockForUpdate()->find($validated['account_id']);
                 
@@ -316,12 +349,10 @@ class SaleController extends Controller
                     throw new \Exception("Account not found");
                 }
 
-                // Update account balance
                 $balanceBefore = $account->current_balance;
                 $account->current_balance += $paidAmount;
                 $account->save();
 
-                // Create transaction record
                 \App\Models\AccountTransaction::create([
                     'account_id'       => $account->id,
                     'reference_type'   => 'sale',
@@ -344,7 +375,6 @@ class SaleController extends Controller
                 ]);
             }
 
-            // Commit transaction
             DB::commit();
 
             Log::info('Sale completed successfully', [
@@ -376,6 +406,7 @@ class SaleController extends Controller
         }
     }
 
+    // Rest of methods remain the same...
     public function show(Sale $sale)
     {
         $sale->load(['warehouse', 'customer', 'creator', 'items.product']);
@@ -485,26 +516,21 @@ class SaleController extends Controller
         try {
             $customerId = $sale->customer_id;
 
-            // ✅ Restore warehouse stock if sale was completed
             if ($sale->sale_status === 'completed') {
                 foreach ($sale->items as $item) {
-                    // Add back to product_warehouse
                     \App\Models\ProductWarehouse::addStock(
                         $sale->warehouse_id,
                         $item->product_id,
                         $item->quantity,
-                        null, // No batch_id for returns
-                        null, // No expiry_date
-                        
+                        null,
+                        null
                     );
 
-                    // Increase global stock
                     Product::where('id', $item->product_id)
                         ->increment('stock', $item->quantity);
                 }
             }
 
-            // Restore account balance
             if ($sale->paid_amount > 0 && $sale->account_id) {
                 $account = \App\Models\Account::lockForUpdate()->find($sale->account_id);
                 if ($account) {
@@ -529,7 +555,6 @@ class SaleController extends Controller
 
             $sale->delete();
 
-            // Sync customer due
             if ($customerId) {
                 $customer = Customer::find($customerId);
                 if ($customer) {

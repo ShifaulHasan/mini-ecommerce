@@ -152,6 +152,67 @@
             font-size: 24px;
             margin-right: 10px;
         }
+
+        /* Product Search Wrapper */
+.product-search-wrapper {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px dashed #dee2e6;
+}
+
+/* Search Box */
+.search-box {
+    position: relative;
+    margin-bottom: 12px;
+}
+
+.search-box select {
+    padding-left: 45px;
+    height: 50px;
+    font-size: 15px;
+    border: 2px solid #dee2e6;
+    border-radius: 8px;
+    background: white;
+    width: 100%;
+    transition: all 0.3s ease;
+}
+
+.search-box select:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    outline: none;
+}
+
+.search-box select:disabled {
+    background: #e9ecef;
+    cursor: not-allowed;
+    color: #6c757d;
+}
+
+.search-box .search-icon {
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 20px;
+    color: #667eea;
+    pointer-events: none;
+}
+
+/* Helper Text */
+.helper-text {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #6c757d;
+    font-size: 13px;
+}
+
+.helper-text i {
+    color: #667eea;
+    font-size: 16px;
+}
     </style>
 
    @if(session('error'))
@@ -222,41 +283,41 @@
             </select>
         </div>
         
-        <div class="col-md-6">
+        <!-- <div class="col-md-6">
             <label class="form-label fw-bold">Tax Type</label>
             <select name="tax_type" id="taxType" class="form-select">
                 <option value="exclusive">Exclusive</option>
                 <option value="inclusive">Inclusive</option>
             </select>
-        </div>
+        </div> -->
         <div class="col-md-12">
             <label class="form-label fw-bold">Attach Document</label>
             <input type="file" name="document" class="form-control" accept=".pdf,.jpg,.png,.jpeg">
         </div>
     </div>
 </div>
-                <!-- Product Selection -->
-                <div class="sale-card">
-                    <h5 class="card-title-custom">
-                        <i class="bi bi-box-seam"></i> Product Selection
-                    </h5>
-                    <div class="search-box">
-                        <i class="bi bi-upc-scan search-icon"></i>
-                        <select id="productSelect" class="form-control">
-                            <option value="">Please type product code and select...</option>
-                            @foreach($products as $product)
-                            <option value="{{ $product->id }}" 
-                                    data-name="{{ $product->name }}" 
-                                    data-code="PRD-{{ $product->id }}" 
-                                    data-price="{{ $product->price ?? $product->selling_price ?? 0 }}"
-                                    data-stock="{{ $product->stock }}">
-                                PRD-{{ $product->id }} - {{ $product->name }} (Stock: {{ $product->stock }}) - ৳{{ $product->price ?? $product->selling_price ?? 0 }}
-                            </option>
-                            @endforeach
-                        </select>
-                    </div>
-                </div>
+             <!-- Product Selection -->
 
+<!-- Product Selection -->
+<div class="sale-card">
+    <h5 class="card-title-custom">
+        <i class="bi bi-box-seam"></i> Product Selection
+    </h5>
+    
+    <div class="product-search-wrapper">
+        <div class="search-box">
+            <i class="bi bi-upc-scan search-icon"></i>
+            <select id="productSelect" class="form-control" disabled>
+                <option value="">Select warehouse first to load products...</option>
+            </select>
+        </div>
+        
+        <div class="helper-text">
+            <i class="bi bi-info-circle"></i>
+            Products will load automatically when you select a warehouse above
+        </div>
+    </div>
+</div>
                 <!-- Order Table -->
                 <div class="order-table">
                     <table class="table mb-0" id="orderTable">
@@ -476,18 +537,19 @@
     </div>
 
 <script>
+// ========================================
+// 🔹 Global Variables
+// ========================================
 let orderItems = [];
 let itemCounter = 0;
 
 // ========================================
-// 🔹 Custom Notification Function
+// 🔹 Notification Function
 // ========================================
 function showNotification(message, type = 'error') {
-    // Remove existing notification if any
     const existing = document.getElementById('customNotification');
     if (existing) existing.remove();
     
-    // Create notification element
     const notification = document.createElement('div');
     notification.id = 'customNotification';
     notification.style.cssText = `
@@ -511,14 +573,15 @@ function showNotification(message, type = 'error') {
     
     document.body.appendChild(notification);
     
-    // Auto remove after 3 seconds
     setTimeout(() => {
         notification.style.animation = 'slideOut 0.3s ease';
         setTimeout(() => notification.remove(), 300);
     }, 3000);
 }
 
-// Add CSS animation
+// ========================================
+// 🔹 Add CSS Animations
+// ========================================
 const style = document.createElement('style');
 style.textContent = `
     @keyframes slideIn {
@@ -544,15 +607,12 @@ style.textContent = `
 document.head.appendChild(style);
 
 // ========================================
-// 🔹 Initialize All Event Listeners
+// 🔹 DOM Content Loaded
 // ========================================
 document.addEventListener('DOMContentLoaded', function() {
     
-    // ========================================
-    // 🔹 Date Validation - Block Future Dates
-    // ========================================
+    // Date Validation
     const saleDateInput = document.querySelector('input[name="sale_date"]');
-    
     if (saleDateInput) {
         const today = new Date().toISOString().split('T')[0];
         saleDateInput.setAttribute('max', today);
@@ -573,10 +633,96 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // ========================================
-    // 🔹 Product Selection Handler
-    // ========================================
+    // Warehouse Change Handler
+    const warehouseSelect = document.querySelector('select[name="warehouse_id"]');
     const productSelect = document.getElementById('productSelect');
+    
+    if (warehouseSelect && productSelect) {
+        warehouseSelect.addEventListener('change', function() {
+            const warehouseId = this.value;
+            
+            productSelect.disabled = !warehouseId;
+            productSelect.innerHTML = '<option value="">Loading products...</option>';
+            
+            if (orderItems.length > 0) {
+                if (confirm('Changing warehouse will clear your cart. Continue?')) {
+                    orderItems = [];
+                    renderOrderTable();
+                    calculateTotal();
+                } else {
+                    this.value = warehouseSelect.dataset.previousValue || '';
+                    productSelect.innerHTML = '<option value="">Please select a warehouse first</option>';
+                    productSelect.disabled = true;
+                    return;
+                }
+            }
+            
+            if (!warehouseId) {
+                productSelect.innerHTML = '<option value="">Please select a warehouse first</option>';
+                productSelect.disabled = true;
+                return;
+            }
+            
+            warehouseSelect.dataset.previousValue = warehouseId;
+            
+            // ✅ FIXED: Get base URL properly
+            const baseUrl = window.location.origin + window.location.pathname.split('/sales')[0];
+            const url = `${baseUrl}/sales/get-products-by-warehouse?warehouse_id=${warehouseId}`;
+            
+            console.log('Fetching from URL:', url);
+            
+            fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                }
+            })
+            .then(response => {
+                console.log('Response status:', response.status);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Products received:', data);
+                productSelect.innerHTML = '<option value="">Please type product code and select...</option>';
+                
+                if (data.products && data.products.length > 0) {
+                    data.products.forEach(product => {
+                        const option = document.createElement('option');
+                        option.value = product.id;
+                        option.dataset.name = product.name;
+                        option.dataset.code = product.code;
+                        option.dataset.price = product.price;
+                        option.dataset.stock = product.stock;
+                        option.textContent = `${product.code} - ${product.name} (Stock: ${product.stock}) - ৳${product.price}`;
+                        productSelect.appendChild(option);
+                    });
+                    
+                    productSelect.disabled = false;
+                    showNotification(`Loaded ${data.products.length} products from selected warehouse`, 'success');
+                } else {
+                    productSelect.innerHTML = '<option value="">No products available in this warehouse</option>';
+                    productSelect.disabled = true;
+                    showNotification('No products found in this warehouse', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error loading products:', error);
+                productSelect.innerHTML = '<option value="">Error loading products</option>';
+                productSelect.disabled = true;
+                showNotification('Failed to load products: ' + error.message, 'error');
+            });
+        });
+        
+        if (warehouseSelect.value) {
+            warehouseSelect.dispatchEvent(new Event('change'));
+        }
+    }
+    
+    // Product Selection Handler
     if (productSelect) {
         productSelect.addEventListener('change', function() {
             if (!this.value) return;
@@ -585,21 +731,18 @@ document.addEventListener('DOMContentLoaded', function() {
             const productId = this.value;
             const availableStock = parseInt(option.dataset.stock) || 0;
             
-            // ✅ Check if already added
             if (orderItems.find(item => item.productId == productId)) {
                 showNotification('Product already added to cart!', 'error');
                 this.value = '';
                 return;
             }
             
-            // ✅ Check stock availability
             if (availableStock <= 0) {
                 showNotification('⚠️ Product Out of Stock!', 'error');
                 this.value = '';
                 return;
             }
             
-            // ✅ Add product to cart
             itemCounter++;
             const item = {
                 id: itemCounter,
@@ -641,7 +784,6 @@ function renderOrderTable() {
     }
     
     tbody.innerHTML = orderItems.map(item => {
-        // ✅ Check if stock is running low
         const stockStatus = item.availableStock <= 5 ? 'stock-warning' : 'stock-ok';
         const stockIcon = item.availableStock <= 5 ? 'bi-exclamation-triangle' : 'bi-box-seam';
         
@@ -693,49 +835,34 @@ function renderOrderTable() {
     `}).join('');
 }
 
-// ========================================
-// 🔹 Calculate Item Subtotal
-// ========================================
 function calculateItemSubtotal(item) {
     const base = item.quantity * item.unitPrice;
     return base - item.discount + item.tax;
 }
 
-// ========================================
-// 🔹 Update Quantity with Stock Validation
-// ========================================
 function updateQuantity(id, value) {
     const item = orderItems.find(i => i.id === id);
     if (!item) return;
     
     const newQty = parseInt(value) || 1;
     
-    // ✅ Validate quantity is positive
     if (newQty < 1) {
         showNotification('Quantity must be at least 1', 'error');
         renderOrderTable();
         return;
     }
     
-    // ✅ Validate against available stock
     if (newQty > item.availableStock) {
-        showNotification(
-            `⚠️ Product Out of Stock!<br><small>Only ${item.availableStock} available for "${item.name}"</small>`,
-            'error'
-        );
-        renderOrderTable(); // Reset to previous value
+        showNotification(`⚠️ Only ${item.availableStock} available for "${item.name}"`, 'error');
+        renderOrderTable();
         return;
     }
     
-    // ✅ Update quantity
     item.quantity = newQty;
     renderOrderTable();
     calculateTotal();
 }
 
-// ========================================
-// 🔹 Update Price
-// ========================================
 function updatePrice(id, value) {
     const item = orderItems.find(i => i.id === id);
     if (item) {
@@ -745,9 +872,6 @@ function updatePrice(id, value) {
     }
 }
 
-// ========================================
-// 🔹 Update Discount
-// ========================================
 function updateDiscount(id, value) {
     const item = orderItems.find(i => i.id === id);
     if (item) {
@@ -757,9 +881,6 @@ function updateDiscount(id, value) {
     }
 }
 
-// ========================================
-// 🔹 Update Tax
-// ========================================
 function updateTax(id, value) {
     const item = orderItems.find(i => i.id === id);
     if (item) {
@@ -769,9 +890,6 @@ function updateTax(id, value) {
     }
 }
 
-// ========================================
-// 🔹 Remove Item
-// ========================================
 function removeItem(id) {
     if (confirm('Are you sure you want to remove this product?')) {
         orderItems = orderItems.filter(i => i.id !== id);
@@ -781,9 +899,6 @@ function removeItem(id) {
     }
 }
 
-// ========================================
-// 🔹 Calculate Total
-// ========================================
 function calculateTotal() {
     const subtotal = orderItems.reduce((sum, item) => sum + calculateItemSubtotal(item), 0);
     
@@ -797,7 +912,6 @@ function calculateTotal() {
     const shipping = parseFloat(shippingCostInput ? shippingCostInput.value : 0) || 0;
     const grandTotal = subtotal + orderTax - orderDiscount + shipping;
     
-    // Update display
     const totalItemsEl = document.getElementById('totalItems');
     const displaySubtotalEl = document.getElementById('displaySubtotal');
     const displayOrderTaxEl = document.getElementById('displayOrderTax');
@@ -813,17 +927,12 @@ function calculateTotal() {
     if (displayGrandTotalEl) displayGrandTotalEl.textContent = '৳' + grandTotal.toFixed(2);
 }
 
-// ========================================
-// 🔹 Show Payment Modal
-// ========================================
 function showPaymentModal() {
-    // ✅ Validate: At least one product
     if (orderItems.length === 0) {
         showNotification('Please add at least one product!', 'error');
         return;
     }
     
-    // ✅ Validate: Warehouse selected
     const warehouseSelect = document.querySelector('select[name="warehouse_id"]');
     if (warehouseSelect && !warehouseSelect.value) {
         showNotification('Please select a warehouse!', 'error');
@@ -831,7 +940,6 @@ function showPaymentModal() {
         return;
     }
     
-    // ✅ Set payment modal values
     const grandTotalEl = document.getElementById('displayGrandTotal');
     const grandTotal = grandTotalEl ? grandTotalEl.textContent : '৳0.00';
     
@@ -843,7 +951,6 @@ function showPaymentModal() {
     
     calculateChange();
     
-    // ✅ Show modal
     const modalEl = document.getElementById('paymentModal');
     if (modalEl) {
         const modal = new bootstrap.Modal(modalEl);
@@ -851,26 +958,17 @@ function showPaymentModal() {
     }
 }
 
-// ========================================
-// 🔹 Select Payment Method
-// ========================================
 function selectPayment(method) {
-    // Remove active class from all
     document.querySelectorAll('.payment-method').forEach(el => el.classList.remove('active'));
     
-    // Add active class to selected
     if (event && event.currentTarget) {
         event.currentTarget.classList.add('active');
     }
     
-    // Check radio button
     const radioBtn = document.getElementById('pay_' + method);
     if (radioBtn) radioBtn.checked = true;
 }
 
-// ========================================
-// 🔹 Calculate Change
-// ========================================
 function calculateChange() {
     const paymentTotalEl = document.getElementById('paymentTotal');
     const amountPayingInput = document.getElementById('amountPaying');
@@ -885,40 +983,32 @@ function calculateChange() {
     changeReturnInput.value = change >= 0 ? '৳' + change.toFixed(2) : '৳0.00';
 }
 
-// ========================================
-// 🔹 Complete Sale (Submit)
-// ========================================
 function completeSale(event) {
     if (event) event.preventDefault();
     
-    // ✅ Validate: Products added
     if (orderItems.length === 0) {
         showNotification('Please add at least one product!', 'error');
         return;
     }
 
-    // ✅ Validate: Account selected
     const accountId = parseInt(document.getElementById('accountSelectSale').value);
     if (!accountId) {
         showNotification('Please select an account!', 'error');
         return;
     }
     
-    // ✅ Validate: Payment method selected
     const paymentMethod = document.querySelector('input[name="payment_method"]:checked');
     if (!paymentMethod) {
         showNotification('Please select a payment method!', 'error');
         return;
     }
     
-    // ✅ Validate: Warehouse selected
     const warehouseSelect = document.querySelector('select[name="warehouse_id"]');
     if (!warehouseSelect || !warehouseSelect.value) {
         showNotification('Please select a warehouse!', 'error');
         return;
     }
     
-    // ✅ Disable button and show loading
     const btn = event ? event.target : document.getElementById('completePaymentBtn');
     if (!btn) return;
     
@@ -926,7 +1016,6 @@ function completeSale(event) {
     btn.disabled = true;
     btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Processing...';
     
-    // Calculate all amounts
     const subtotal = orderItems.reduce((sum, item) => sum + calculateItemSubtotal(item), 0);
     
     const orderTaxInput = document.getElementById('orderTax');
@@ -942,9 +1031,6 @@ function completeSale(event) {
     const amountPayingInput = document.getElementById('amountPaying');
     const amountPaying = parseFloat(amountPayingInput ? amountPayingInput.value : 0) || 0;
     
-    const dueAmount = Math.max(0, grandTotal - amountPaying);
-    
-    // Determine payment status
     const paymentStatusSelect = document.getElementById('paymentStatus');
     let paymentStatus = paymentStatusSelect ? paymentStatusSelect.value : 'pending';
     
@@ -956,14 +1042,12 @@ function completeSale(event) {
         paymentStatus = 'pending';
     }
     
-    // Get form values
     const saleDateInput = document.querySelector('input[name="sale_date"]');
     const customerIdSelect = document.querySelector('select[name="customer_id"]');
     const saleStatusSelect = document.querySelector('select[name="sale_status"]');
     const deliveryStatusSelect = document.getElementById('deliveryStatus');
     const notesTextarea = document.querySelector('textarea[name="notes"]');
     
-    // Prepare items array
     const items = orderItems.map(item => ({
         product_id: item.productId,
         quantity: item.quantity,
@@ -972,7 +1056,6 @@ function completeSale(event) {
         tax: item.tax || 0
     }));
     
-    // Prepare data object
     const data = {
         sale_date: saleDateInput ? saleDateInput.value : new Date().toISOString().split('T')[0],
         warehouse_id: warehouseSelect.value,
@@ -994,15 +1077,14 @@ function completeSale(event) {
         items: items
     };
     
-    console.log('=== SENDING SALE DATA ===');
-    console.log(JSON.stringify(data, null, 2));
-    console.log('=== END DATA ===');
-    
-    // Send AJAX request
     const csrfToken = document.querySelector('meta[name="csrf-token"]');
     const token = csrfToken ? csrfToken.getAttribute('content') : '';
     
-    fetch('{{ route("sales.store") }}', {
+    // ✅ Fixed URL for sale submission
+    const baseUrl = window.location.origin + window.location.pathname.split('/sales')[0];
+    const submitUrl = `${baseUrl}/sales`;
+    
+    fetch(submitUrl, {
         method: 'POST',
         body: JSON.stringify(data),
         headers: {
@@ -1016,7 +1098,6 @@ function completeSale(event) {
     .then(response => {
         if (!response.ok) {
             return response.json().then(data => {
-                console.error('Server response:', data);
                 throw new Error(data.message || 'Server error occurred');
             }).catch(err => {
                 throw new Error('Server error: ' + response.statusText);
@@ -1034,7 +1115,7 @@ function completeSale(event) {
             
             showNotification('Sale completed successfully!', 'success');
             setTimeout(() => {
-                window.location.href = data.redirect || '{{ route("sales.index") }}';
+                window.location.href = data.redirect || `${baseUrl}/sales`;
             }, 1000);
         } else {
             throw new Error(data.message || 'Failed to complete sale');
@@ -1048,8 +1129,6 @@ function completeSale(event) {
     });
 }
 </script>
-        </div> 
-
     <!-- Footer Note -->
     <div class="row mt-4 mb-3">
         <div class="col-12">

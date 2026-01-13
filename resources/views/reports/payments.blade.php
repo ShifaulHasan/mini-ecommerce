@@ -125,7 +125,15 @@
                                                 </span>
                                             </td>
                                             <td>{{ $payment->description }}</td>
-                                            <td>{{ ucfirst(str_replace('_', ' ', $payment->payment_method ?? 'N/A')) }}</td>
+                                            <td>
+                                                @if($payment->actual_payment_method)
+                                                    <span class="badge bg-primary">
+                                                        {{ ucfirst(str_replace('_', ' ', $payment->actual_payment_method)) }}
+                                                    </span>
+                                                @else
+                                                    <span class="text-muted">N/A</span>
+                                                @endif
+                                            </td>
                                             <td class="text-center">
                                                 <span class="badge bg-{{ $payment->transaction_type == 'credit' ? 'success' : 'danger' }}">
                                                     {{ ucfirst($payment->transaction_type) }}

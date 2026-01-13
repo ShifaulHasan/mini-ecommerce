@@ -76,9 +76,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('orders', OrderController::class)->only(['index', 'show']);
     Route::patch('/orders/{order}/status', [OrderController::class, 'updateStatus'])->name('orders.updateStatus');
 
-    // Sales
-    Route::resource('sales', SaleController::class);
+    // ===============================
+    // Sales Routes
+    // ⚠️ IMPORTANT: Custom routes MUST come BEFORE resource routes!
+    // ===============================
+    Route::get('/sales/get-products-by-warehouse', [SaleController::class, 'getProductsByWarehouse'])->name('sales.getProductsByWarehouse');
     Route::get('/sales/get-warehouse-products', [SaleController::class, 'getWarehouseProducts'])->name('sales.getWarehouseProducts');
+    Route::resource('sales', SaleController::class);
 
     // POS Routes
     Route::get('/pos', [POSController::class, 'index'])->name('pos.index');
@@ -92,7 +96,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/pos/store', [POSController::class, 'store'])->name('pos.store');
     Route::post('/complete-sale', [POSController::class, 'store'])->name('pos.complete-sale');
     Route::get('/pos/warehouse-stock/{warehouse}', [POSController::class, 'warehouseStock']);
-
 
     // Sale Returns
     Route::get('/sale-returns/get-items/{sale}', [SaleReturnController::class, 'getSaleItems'])->name('sale-returns.get-items');
@@ -151,8 +154,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/payrolls/{payroll}/approve', [PayrollController::class, 'approve'])->name('payrolls.approve');
     Route::resource('payrolls', PayrollController::class);
     
-
-    
     // Report Routes
     Route::prefix('reports')->name('reports.')->group(function () {
         Route::get('/products', [ReportController::class, 'productReport'])->name('products');
@@ -163,6 +164,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/customers', [ReportController::class, 'customerReport'])->name('customers');
         Route::get('/suppliers', [ReportController::class, 'supplierReport'])->name('suppliers');
     });
+    
+    Route::get('/reports/profit', [ReportController::class, 'profitReport'])
+        ->name('reports.profit')
+        ->middleware('can:view reports');
 
     // Settings Routes
     Route::get('/settings/roles', [SettingController::class, 'roles'])->name('settings.roles');

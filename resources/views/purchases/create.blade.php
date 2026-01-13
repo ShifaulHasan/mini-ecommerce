@@ -188,7 +188,7 @@
 
         <div class="row">
             <!-- Left Column -->
-            <div class="col-lg-9">
+            <div class="col-lg-12">
                 <!-- Purchase Information -->
                 <div class="purchase-card">
                     <h5 class="card-title-custom">
@@ -241,13 +241,13 @@
                             <label class="form-label fw-bold">Currency</label>
                             <select name="currency" class="form-select">
                                  <option value="BDT" selected>BDT - Bangladeshi Taka</option>
-                                <option value="USD">USD - US Dollar</option>
+                                <!-- <option value="USD">USD - US Dollar</option> -->
                                
                                 <!-- <option value="EUR">EUR - Euro</option>
                                 <option value="GBP">GBP - British Pound</option> -->
                             </select>
                         </div>
-                        <div class="col-md-6">
+                        <!-- <div class="col-md-6">
                             <label class="form-label fw-bold">
                                 Exchange Rate 
                                 <i class="bi bi-info-circle text-primary" title="Rate to convert to base currency"></i>
@@ -255,7 +255,7 @@
                             <input type="number" name="exchange_rate" class="form-control" step="0.01" value="1.00">
                         </div>
                     </div>
-                </div>
+                </div> -->
 
                 <!-- Product Selection -->
                 <div class="purchase-card">
@@ -323,7 +323,7 @@
             </div>
 
             <!-- Right Column - Calculation Summary -->
-            <div class="col-lg-3">
+            <div class="col-lg-6">
                 <div class="calculation-sidebar">
                     <h5 class="mb-4">
                         <i class="bi bi-calculator"></i> Order Summary
