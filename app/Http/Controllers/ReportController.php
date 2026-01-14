@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\DB;
 
 class ReportController extends Controller
 {
-    // Product Report
+    // Product Report - FIXED
     public function productReport(Request $request)
     {
         $query = "
@@ -19,7 +19,7 @@ class ReportController extends Controller
                 b.name as brand_name,
                 p.cost_price,
                 p.price as selling_price,
-                p.stock as current_stock,
+                COALESCE((SELECT SUM(quantity) FROM product_warehouse WHERE product_id = p.id), 0) as current_stock,
                 (p.price - p.cost_price) as profit_margin
             FROM products p
             LEFT JOIN categories c ON c.id = p.category_id
@@ -157,7 +157,7 @@ class ReportController extends Controller
         return view('reports.purchases', compact('purchases', 'totals', 'suppliers'));
     }
 
-    // Adjustment Report
+    // Adjustment Report - FIXED
     public function adjustmentReport(Request $request)
     {
         $query = "
@@ -172,7 +172,8 @@ class ReportController extends Controller
                 a.current_stock,
                 a.new_stock,
                 a.reason,
-                u.name as created_by_name
+                u.name as created_by_name,
+                COALESCE((SELECT SUM(quantity) FROM product_warehouse WHERE product_id = p.id), 0) as actual_current_stock
             FROM adjustments a
             JOIN products p ON p.id = a.product_id
             JOIN warehouses w ON w.id = a.warehouse_id
@@ -206,7 +207,7 @@ class ReportController extends Controller
         return view('reports.adjustments', compact('adjustments', 'products'));
     }
 
-    // Payment Report - FIXED VERSION
+    // Payment Report
     public function paymentReport(Request $request)
     {
         $query = "
@@ -360,7 +361,7 @@ class ReportController extends Controller
         return view('reports.suppliers', compact('suppliers', 'totals'));
     }
 
-    // Profit Report
+    // Profit Report - FIXED WITH CORRECT STOCK
     public function profitReport(Request $request)
     {
         // Build date filter for sales
@@ -384,7 +385,9 @@ class ReportController extends Controller
                 p.id as product_id,
                 p.product_code,
                 p.name as product_name,
-                p.stock as current_stock,
+                
+                -- FIXED: Current Stock  product_warehouse ট
+                COALESCE((SELECT SUM(quantity) FROM product_warehouse WHERE product_id = p.id), 0) as current_stock,
                 
                 -- Purchase Data
                 COALESCE(purchase_data.purchase_qty, 0) as purchase_qty,

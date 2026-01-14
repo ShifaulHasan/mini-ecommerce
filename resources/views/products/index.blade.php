@@ -2,7 +2,7 @@
     <x-slot name="header">
         <div class="d-flex justify-content-between align-items-center">
             <h2 class="h5 fw-semibold mb-0">Products</h2>
-             @can('create products')
+            @can('create products')
             <a href="{{ route('products.create') }}" class="btn btn-sm btn-primary">
                 <i class="bi bi-plus-circle"></i> Add Product
             </a>
@@ -13,6 +13,15 @@
     @if(session('success'))
     <div class="alert alert-success alert-dismissible fade show" role="alert">
         {{ session('success') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    @endif
+
+    @if($errors->any())
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @foreach($errors->all() as $error)
+            <div>{{ $error }}</div>
+        @endforeach
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
     @endif
@@ -31,10 +40,10 @@
                             <th>Unit</th>
                             <th>Cost</th>
                             <th>Price</th>
-                            <th>Stock</th>
-                                @canany(['edit products', 'delete products'])
+                            <th>Total Stock</th>
+                            @canany(['edit products', 'delete products'])
                             <th>Actions</th>
-                                @endcanany
+                            @endcanany
                         </tr>
                     </thead>
                     <tbody>
@@ -54,37 +63,72 @@
                                 @endif
                             </td>
                             <td><code>{{ $product->product_code }}</code></td>
-                            <td><strong>{{ $product->name }}</strong></td>
+                            <td>
+                                <strong>{{ $product->name }}</strong>
+                                @php
+                                    // product_warehouse  warehouse-wise stock fetch 
+                                    $warehouseStocks = DB::table('product_warehouse')
+                                        ->join('warehouses', 'product_warehouse.warehouse_id', '=', 'warehouses.id')
+                                        ->where('product_warehouse.product_id', $product->id)
+                                        ->select('warehouses.name', 'product_warehouse.quantity')
+                                        ->get();
+                                @endphp
+                                @if($warehouseStocks->count() > 0)
+                                <button class="btn btn-sm btn-link p-0 ms-2" 
+                                        type="button" 
+                                        data-bs-toggle="collapse" 
+                                        data-bs-target="#stock-{{ $product->id }}" 
+                                        aria-expanded="false">
+                                    <i class="bi bi-info-circle"></i>
+                                </button>
+                                <div class="collapse mt-2" id="stock-{{ $product->id }}">
+                                    <div class="card card-body p-2 small">
+                                        <strong>Warehouse Stock Breakdown:</strong>
+                                        <ul class="mb-0 ps-3">
+                                            @foreach($warehouseStocks as $ws)
+                                            <li>{{ $ws->name }}: <strong>{{ $ws->quantity }}</strong></li>
+                                            @endforeach
+                                        </ul>
+                                    </div>
+                                </div>
+                                @endif
+                            </td>
                             <td>{{ $product->category->name ?? '-' }}</td>
                             <td>{{ $product->brand->name ?? '-' }}</td>
                             <td>{{ $product->unit->name ?? '-' }}</td>
                             <td>৳{{ number_format($product->cost_price, 2) }}</td>
-                           <td><strong>৳{{ number_format($product->price, 2) }}</strong></td>
-
+                            <td><strong>৳{{ number_format($product->price, 2) }}</strong></td>
                             <td>
-                                <span class="badge {{ $product->stock > 10 ? 'bg-success' : ($product->stock > 0 ? 'bg-warning' : 'bg-danger') }}">
-                                    {{ $product->stock }}
+                                @php
+                                    // product_warehouse  total stock
+                                    $totalStock = $product->total_stock;
+                                @endphp
+                                <span class="badge {{ $totalStock > 10 ? 'bg-success' : ($totalStock > 0 ? 'bg-warning' : 'bg-danger') }}">
+                                    {{ $totalStock }}
                                 </span>
                             </td>
+                            @canany(['edit products', 'delete products'])
                             <td>
                                 <div class="btn-group btn-group-sm">
-
-                                     @canany(['edit products', 'delete products'])
-                                 
+                                    @can('edit products')
                                     <a href="{{ route('products.edit', $product) }}" class="btn btn-outline-primary">
                                         <i class="bi bi-pencil"></i>
                                     </a>
+                                    @endcan
+                                    
+                                    @can('delete products')
                                     <form action="{{ route('products.destroy', $product) }}" method="POST" 
-                                          onsubmit="return confirm('Are you sure?')" class="d-inline">
+                                          onsubmit="return confirm('Are you sure you want to delete this product?')" class="d-inline">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="btn btn-outline-danger">
                                             <i class="bi bi-trash"></i>
                                         </button>
-                                        @endcanany
                                     </form>
+                                    @endcan
                                 </div>
                             </td>
+                            @endcanany
                         </tr>
                         @empty
                         <tr>
@@ -103,8 +147,6 @@
             </div>
         </div>
     </div>
-    
-    </div> 
 
     <!-- Footer Note -->
     <div class="row mt-4 mb-3">
@@ -115,6 +157,4 @@
         </div>
     </div>
 
-</div>
-    
 </x-app-layout>
