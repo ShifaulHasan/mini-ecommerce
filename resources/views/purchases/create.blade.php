@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="d-flex justify-content-between align-items-center">
+        <div class="d-flex justify-content-between align-items-center gap-3">
             <h2 class="h5 fw-semibold mb-0">
                 <i class="bi bi-cart-plus"></i> Add Purchase
             </h2>
@@ -178,6 +178,7 @@
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
     @endif
+    
 
     {{-- ---------------------------
          Form: note the action uses the route you provided:
@@ -233,11 +234,11 @@
         @endforeach
     </select>
 </div>
-                        <div class="col-md-4">
+                        <div class="col-md-4 d-none">
                             <label class="form-label fw-bold">Attach Document</label>
                             <input type="file" name="document" class="form-control" accept=".pdf,.jpg,.png,.jpeg">
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-6 d-none">
                             <label class="form-label fw-bold">Currency</label>
                             <select name="currency" class="form-select">
                                  <option value="BDT" selected>BDT - Bangladeshi Taka</option>
@@ -279,13 +280,12 @@
                                 <th>Name</th>
                                 <th style="width: 80px;">Code</th>
                                 <th style="width: 70px;">Qty</th>
-                                <th style="width: 110px;">Batch No</th>
-                                <th style="width: 120px;">Expiry Date</th>
+                                <th class="d-none" style="width: 110px;">Batch No</th>
+                                <th  class="d-none"style="width: 120px;">Expiry Date</th>
                                 <th style="width: 90px;">Unit Cost</th>
-                                <th style="width: 70px;">Discount</th>
-                                <th style="width: 60px;">Tax</th>
+                        
                                 <th style="width: 90px;">Subtotal</th>
-                                <th style="width: 40px;"></th>
+                                <th style="width: 40px;">Action</th>
                             </tr>
                         </thead>
                         <tbody id="orderTableBody">
@@ -421,7 +421,7 @@
                                 </div>
                             </div>
 
-                            <!-- <div class="payment-method" onclick="selectPayment('bkash')">
+                            <div class="payment-method" onclick="selectPayment('bkash')">
                                 <div class="d-flex align-items-center">
                                     <input type="radio" name="payment_method" value="bkash" id="pay_bkash">
                                     <label for="pay_bkash" class="ms-3 mb-0 flex-grow-1 cursor-pointer">
@@ -450,7 +450,7 @@
                                     </label>
                                 </div>
                             </div>
-                        </div> -->
+                        </div>
 
                         <div class="col-md-5">
                             <div class="bg-light p-3 rounded">
@@ -626,7 +626,7 @@ function addProduct(productId) {
     }
     
     if (orderItems.find(item => item.productId === productId)) {
-        alert('Product already added!');
+        showNotification('Product already added!', 'error');
         return;
     }
     
@@ -675,25 +675,17 @@ function renderOrderTable() {
                 <input type="number" class="form-control form-control-sm" min="1" value="${item.quantity}" 
                        onchange="updateQuantity(${item.id}, this.value)">
             </td>
-            <td>
+            <td  class="d-none">
                 <input type="text" class="form-control form-control-sm" placeholder="BATCH-001" 
                        value="${item.batchNo}" onchange="updateBatch(${item.id}, this.value)">
             </td>
-            <td>
+            <td t class="d-none">
                 <input type="date" class="form-control form-control-sm" 
                        value="${item.expiryDate}" onchange="updateExpiry(${item.id}, this.value)">
             </td>
             <td>
                 <input type="number" class="form-control form-control-sm" step="0.01" value="${item.unitCost}" 
                        onchange="updateCost(${item.id}, this.value)">
-            </td>
-            <td>
-                <input type="number" class="form-control form-control-sm" step="0.01" value="${item.discount}" 
-                       onchange="updateDiscount(${item.id}, this.value)">
-            </td>
-            <td>
-                <input type="number" class="form-control form-control-sm" step="0.01" value="${item.tax}" 
-                       onchange="updateTax(${item.id}, this.value)">
             </td>
             <td><strong>৳${calculateItemSubtotal(item).toFixed(2)}</strong></td>
             <td>
@@ -792,14 +784,14 @@ function calculateTotal() {
 
 function showPaymentModal() {
     if (orderItems.length === 0) {
-        alert('Please add at least one product!');
+        showNotification('Please add at least one product!', 'error');
         return;
     }
     
     // Validate required fields
     const warehouseSelect = document.querySelector('select[name="warehouse_id"]');
     if (warehouseSelect && !warehouseSelect.value) {
-        alert('Please select a warehouse!');
+        showNotification('Please select a warehouse!', 'error');
         return;
     }
     
@@ -841,21 +833,39 @@ function calculateChange() {
     const paying = parseFloat(amountPayingInput.value) || 0;
     const change = paying - total;
     changeReturnInput.value = change >= 0 ? '৳' + change.toFixed(2) : '৳ 0.00';
+    
+    // Auto select payment status in dropdown
+    const paymentStatusSelect = document.getElementById('paymentStatus');
+    if (paymentStatusSelect) {
+        if (paying >= total) {
+            paymentStatusSelect.value = 'paid';
+        } else if (paying > 0 && paying < total) {
+            paymentStatusSelect.value = 'partial';
+        } else {
+            paymentStatusSelect.value = 'pending';
+        }
+    }
 }
 
 function completePurchase(event) {
     if (event) event.preventDefault();
     
-    // 🔥 NEW: Validate account selection
-    const accountId = parseInt(document.getElementById('accountSelect').value);
+    // Validate account selection
+    const accountSelect = document.getElementById('accountSelect');  
+    const accountId = parseInt(accountSelect.value);                
     if (!accountId) {
-        alert('Please select an account!');
+        showNotification('Please select an account!', 'error');    
         return;
     }
     
+    //  (account balance check)
+    const selectedOption = accountSelect.options[accountSelect.selectedIndex];
+    const balanceText = selectedOption.text.match(/Balance: ৳([\d,]+\.?\d*)/);
+    const accountBalance = balanceText ? parseFloat(balanceText[1].replace(/,/g, '')) : 0;
+    
     const paymentMethod = document.querySelector('input[name="payment_method"]:checked');
     if (!paymentMethod) {
-        alert('Please select a payment method!');
+        showNotification('Please select a payment method!', 'error');  
         return;
     }
     
@@ -864,7 +874,16 @@ function completePurchase(event) {
     const amountPaying = parseFloat(amountPayingInput ? amountPayingInput.value : 0) || 0;
     
     if (amountPaying < 0) {
-        alert('Please enter a valid payment amount!');
+        showNotification('Please enter a valid payment amount!', 'error');  
+        return;
+    }
+    
+    //  validation  (insufficient balance check)
+    if (amountPaying > accountBalance) {
+        showNotification(
+            `Insufficient Balance! Available: ৳${accountBalance.toFixed(2)}, Required: ৳${amountPaying.toFixed(2)}`, 
+            'error'
+        );
         return;
     }
     
@@ -934,7 +953,7 @@ function completePurchase(event) {
     formData.append('payment_status', paymentStatus);
     formData.append('amount_paid', amountPaying.toFixed(2));
     formData.append('due_amount', dueAmount > 0 ? dueAmount.toFixed(2) : '0');
-    formData.append('account_id', accountId); // 🔥 NEW: Add account_id
+    formData.append('account_id', accountId); //  NEW: Add account_id
     
     // Set purchase_status field
     const purchaseStatusSelect = document.querySelector('select[name="purchase_status"]');
@@ -1005,12 +1024,12 @@ function completePurchase(event) {
             throw new Error(data.message || 'Failed to complete purchase');
         }
     })
-    .catch(error => {
-        console.error('Purchase Error:', error);
-        alert('❌ Error: ' + error.message);
-        btn.disabled = false;
-        btn.innerHTML = originalText;
-    });
+ .catch(error => {
+    console.error('Purchase Error:', error);
+    showNotification('❌ ' + error.message, 'error');
+    btn.disabled = false;
+    btn.innerHTML = originalText;
+});
 }
   </script>
       </div> 

@@ -200,7 +200,7 @@ class PurchaseController extends Controller
                     'tax'         => $item['tax'] ?? 0,
                 ]);
 
-                // ✅ Update warehouse stock if status is 'received'
+                // Update warehouse stock if status is 'received'
                 if ($validated['purchase_status'] === 'received') {
                     // Add stock to product_warehouse table
                    // Add stock to product_warehouse table
