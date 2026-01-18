@@ -23,6 +23,16 @@
             border-radius: 50%;
             object-fit: cover;
         }
+        .avatar-text {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 16px;
+        }
         .action-dropdown {
             min-width: 120px;
         }
@@ -160,7 +170,7 @@
                                     @if($user->avatar)
                                         <img src="{{ asset('storage/' . $user->avatar) }}" alt="{{ $user->name }}" class="user-avatar">
                                     @else
-                                        <div class="user-avatar bg-primary text-white d-flex align-items-center justify-content-center">
+                                        <div class="avatar-text bg-primary text-white">
                                             {{ strtoupper(substr($user->name, 0, 1)) }}
                                         </div>
                                     @endif
@@ -174,9 +184,9 @@
                             <td>{{ $user->phone ?? 'N/A' }}</td>
                             <td>
                                 <span class="badge 
-                                    {{ $user->role === 'admin' ? 'bg-danger' : 
-                                       ($user->role === 'manager' ? 'bg-primary' :
-                                       ($user->role === 'cashier' ? 'bg-info' : 'bg-secondary')) }}">
+                                    {{ $user->role === 'Admin' || $user->role === 'Superadmin' ? 'bg-danger' : 
+                                       ($user->role === 'Manager' ? 'bg-primary' :
+                                       ($user->role === 'Employee' || $user->role === 'Stuff' ? 'bg-info' : 'bg-secondary')) }}">
                                     {{ $user->role }}
                                 </span>
                             </td>
@@ -268,9 +278,6 @@
         }
     </script>
 
-
-    </div> 
-
     <!-- Footer Note -->
     <div class="row mt-4 mb-3">
         <div class="col-12">
@@ -280,5 +287,4 @@
         </div>
     </div>
 
-</div>
 </x-app-layout>

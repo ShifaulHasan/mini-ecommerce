@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
 class UserController extends Controller
@@ -69,9 +70,15 @@ class UserController extends Controller
             'phone' => 'nullable|string|max:20',
             'address' => 'nullable|string|max:255',
             'status' => 'required|in:active,inactive',
+            'avatar' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
         $validated['password'] = Hash::make($validated['password']);
+
+        // Handle avatar upload
+        if ($request->hasFile('avatar')) {
+            $validated['avatar'] = $request->file('avatar')->store('avatars', 'public');
+        }
 
         User::create($validated);
 
@@ -110,12 +117,22 @@ class UserController extends Controller
             'phone' => 'nullable|string|max:20',
             'address' => 'nullable|string|max:255',
             'status' => 'required|in:active,inactive',
+            'avatar' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
         if (!empty($validated['password'])) {
             $validated['password'] = Hash::make($validated['password']);
         } else {
             unset($validated['password']);
+        }
+
+        // Handle avatar upload
+        if ($request->hasFile('avatar')) {
+            // Delete old avatar if exists
+            if ($user->avatar) {
+                Storage::disk('public')->delete($user->avatar);
+            }
+            $validated['avatar'] = $request->file('avatar')->store('avatars', 'public');
         }
 
         $user->update($validated);
@@ -133,6 +150,11 @@ class UserController extends Controller
             return back()->with('error', 'You cannot delete your own account!');
         }
 
+        // Delete avatar if exists
+        if ($user->avatar) {
+            Storage::disk('public')->delete($user->avatar);
+        }
+
         $user->delete();
 
         return redirect()->route('users.index')
@@ -145,9 +167,18 @@ class UserController extends Controller
     public function bulkDelete(Request $request)
     {
         $ids = explode(',', $request->input('user_ids', ''));
-        $ids = array_filter($ids, fn($id) => $id != auth()->id()); // prevent deleting self
+        $ids = array_filter($ids, fn($id) => $id != auth()->id());
 
         if (!empty($ids)) {
+            $users = User::whereIn('id', $ids)->get();
+            
+            // Delete avatars
+            foreach ($users as $user) {
+                if ($user->avatar) {
+                    Storage::disk('public')->delete($user->avatar);
+                }
+            }
+            
             User::whereIn('id', $ids)->delete();
         }
 

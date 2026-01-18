@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>{{ config('app.name', 'Mini E-commerce') }}</title>
+    <title>{{ config('app.name', 'Inventory Management') }}</title>
 
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -73,6 +73,60 @@
             padding: 5px 10px !important;
             font-size: 14px !important;
         }
+
+        /* User Profile Avatar */
+        .user-avatar-topbar {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #667eea;
+        }
+        .user-avatar-placeholder {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 16px;
+            border: 2px solid #667eea;
+        }
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .user-details {
+            text-align: right;
+        }
+        .user-name {
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 14px;
+            margin: 0;
+            line-height: 1.2;
+        }
+        .user-role {
+            font-size: 12px;
+            color: #7f8c8d;
+            margin: 0;
+            line-height: 1.2;
+        }
+        .dropdown-menu {
+            min-width: 200px;
+        }
+        .dropdown-item {
+            padding: 10px 20px;
+            font-size: 14px;
+        }
+        .dropdown-item i {
+            margin-right: 8px;
+            width: 16px;
+        }
     </style>
 </head>
 
@@ -94,7 +148,7 @@
             Inventory Management Software 
         </div>
         <div class="brand-tagline" style="font-size: 13px; font-weight: 500; color: rgba(255, 255, 255, 0.75); margin: 0; line-height: 1.5; letter-spacing: 0.01em;">
-           and Smart Billing System With E-Commerce
+           and Smart Billing System 
         </div>
     </div>
 </div>
@@ -275,11 +329,46 @@
     <!-- Top Bar -->
     <div class="topbar">
         <div class="d-flex justify-content-end align-items-center">
-            <span class="me-3">{{ Auth::user()->name }}</span>
-            <form method="POST" action="{{ route('logout') }}">
-                @csrf
-                <button class="btn btn-sm btn-danger">Logout</button>
-            </form>
+            <div class="dropdown">
+                <button class="btn btn-link text-decoration-none dropdown-toggle p-0 border-0" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                    <div class="user-info">
+                        <div class="user-details">
+                            <p class="user-name">{{ Auth::user()->name }}</p>
+                            <p class="user-role">{{ Auth::user()->role }}</p>
+                        </div>
+                        @if(Auth::user()->avatar)
+                            <img src="{{ asset('storage/' . Auth::user()->avatar) }}" 
+                                 alt="{{ Auth::user()->name }}" 
+                                 class="user-avatar-topbar">
+                        @else
+                            <div class="user-avatar-placeholder">
+                                {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}
+                            </div>
+                        @endif
+                    </div>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                    <li>
+                        <a class="dropdown-item" href="{{ route('users.show', Auth::user()->id) }}">
+                            <i class="bi bi-person-circle"></i> My Profile
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item" href="{{ route('users.edit', Auth::user()->id) }}">
+                            <i class="bi bi-pencil-square"></i> Edit Profile
+                        </a>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                        <form method="POST" action="{{ route('logout') }}">
+                            @csrf
+                            <button type="submit" class="dropdown-item text-danger">
+                                <i class="bi bi-box-arrow-right"></i> Logout
+                            </button>
+                        </form>
+                    </li>
+                </ul>
+            </div>
         </div>
     </div>
 

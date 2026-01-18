@@ -29,7 +29,7 @@ class SaleController extends Controller
 {
     $referenceNo = Sale::generateReferenceNo();
 
-    // ✅ Add empty products array to prevent error
+    //  Add empty products array to prevent error
     $products = collect(); // Empty collection
     
     $warehouses = Warehouse::all();
@@ -76,13 +76,13 @@ class SaleController extends Controller
 
     return view('sales.create', compact(
         'referenceNo',
-        'products',      // ✅ Pass empty products
+        'products',      
         'warehouses',
         'customers',
         'accounts'
     ));
 }
-    // ✅ NEW: Get products by warehouse (AJAX endpoint)
+    //  NEW: Get products by warehouse (AJAX endpoint)
    public function getProductsByWarehouse(Request $request)
 {
     $warehouseId = $request->warehouse_id;
@@ -91,7 +91,7 @@ class SaleController extends Controller
         return response()->json(['products' => []]);
     }
 
-    // ✅ FIXED: Removed selling_price from query
+    // FIXED: Removed selling_price from query
     $products = DB::table('product_warehouse')
         ->join('products', 'product_warehouse.product_id', '=', 'products.id')
         ->where('product_warehouse.warehouse_id', $warehouseId)
@@ -350,7 +350,7 @@ class SaleController extends Controller
                 }
 
                 $balanceBefore = $account->current_balance;
-                $account->current_balance += $paidAmount;
+               $account->current_balance += $validated['grand_total'];
                 $account->save();
 
                 \App\Models\AccountTransaction::create([
@@ -358,7 +358,7 @@ class SaleController extends Controller
                     'reference_type'   => 'sale',
                     'reference_id'     => $sale->id,
                     'transaction_type' => 'credit',
-                    'amount'           => $paidAmount,
+                   'amount'           => $validated['grand_total'],
                     'balance_before'   => $balanceBefore,
                     'balance_after'    => $account->current_balance,
                     'description'      => "Sale payment - {$sale->reference_number}",

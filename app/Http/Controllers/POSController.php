@@ -24,7 +24,7 @@ class POSController extends Controller
     /**
      * POS main page - loads products, categories, customers, main warehouse
      */
-   public function index()
+ public function index()
 {
     // Default warehouse (first one)
     $mainWarehouse = Warehouse::orderBy('id')->first();
@@ -43,15 +43,21 @@ class POSController extends Controller
     // Products
     $products = Product::orderBy('name')->get();
 
+    // Load Accounts
+    $accounts = \App\Models\Account::where('status', 'active')
+        ->orderBy('is_default', 'DESC')
+        ->orderBy('name')
+        ->get();
+
     return view('pos.index', compact(
         'products',
         'categories',
         'customers',
         'warehouses',
-        'mainWarehouse'
+        'mainWarehouse',
+        'accounts' 
     ));
 }
-
     /**
      * Return current cart (useful for AJAX refresh)
      */
@@ -68,7 +74,7 @@ class POSController extends Controller
 
         return response()->json([
             'success' => true,
-            'cart' => array_values($cart), // 🔥 FIXED: Return indexed array
+            'cart' => array_values($cart), 
             'summary' => $summary,
             'customer_id' => $customerId,
         ]);
@@ -110,10 +116,10 @@ class POSController extends Controller
             }
             $cart[$foundKey]['quantity'] += 1;
         } else {
-            // 🔥 FIXED: Added product_name field
+            //  FIXED: Added product_name field
             $cart[] = [
                 'product_id'   => (int)$product->id,
-                'product_name' => $product->name, // 🔥 THIS WAS MISSING!
+                'product_name' => $product->name, 
                 'name'         => $product->name,
                 'unit_price'   => round($unitPrice, 2),
                 'quantity'     => 1,
@@ -131,7 +137,7 @@ class POSController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Product added to cart.',
-            'cart' => array_values($cart), // 🔥 FIXED: Return indexed array
+            'cart' => array_values($cart), 
             'summary' => $summary,
         ]);
     }
@@ -178,7 +184,7 @@ class POSController extends Controller
 
         return response()->json([
             'success' => true,
-            'cart' => array_values($cart), // 🔥 FIXED: Return indexed array
+            'cart' => array_values($cart), 
             'summary' => $summary,
         ]);
     }
@@ -224,7 +230,7 @@ class POSController extends Controller
     public function setCustomer(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'customer_id' => 'required|integer|exists:users,id', // 🔥 FIXED: Changed to users table
+            'customer_id' => 'required|integer|exists:users,id', 
         ]);
 
         if ($validator->fails()) {
@@ -250,7 +256,7 @@ public function store(Request $request)
         'products.*.quantity'   => 'required|integer|min:1',
         'products.*.unit_price' => 'required|numeric|min:0',
         'payment_method' => 'required|string',
-        'account_id'     => 'nullable|integer|exists:accounts,id',
+        'account_id'     => 'required|integer|exists:accounts,id',
         'amount_paid'    => 'nullable|numeric|min:0',
         'tax_percentage' => 'nullable|numeric|min:0',
         'discount_amount'=> 'nullable|numeric|min:0',
@@ -304,13 +310,15 @@ public function store(Request $request)
         $taxAmount = ($subtotal * ($request->tax_percentage ?? 0)) / 100;
         $discountAmount = $request->discount_amount ?? 0;
         $grandTotal = $subtotal + $taxAmount - $discountAmount;
+        
+        //  Amount Paid can be more than Grand Total (for change)
         $amountPaid = (float) ($request->amount_paid ?? $grandTotal);
         $dueAmount = max(0, $grandTotal - $amountPaid);
 
         $paymentStatus = $amountPaid >= $grandTotal ? 'paid' : ($amountPaid > 0 ? 'partial' : 'pending');
         $billerName = auth()->user()->name ?? 'POS User';
 
-        // 1️⃣ CREATE THE SALE FIRST
+        // 1️CREATE THE SALE FIRST
         $sale = Sale::create([
             'reference_number' => $referenceNumber,
             'customer_id'      => $request->customer_id,
@@ -329,7 +337,7 @@ public function store(Request $request)
             'updated_at'       => $currentDateTime,
         ]);
 
-        // 2️⃣ CREATE SALE ITEMS AND DEDUCT WAREHOUSE STOCK
+        // CREATE SALE ITEMS AND DEDUCT WAREHOUSE STOCK
         foreach ($cart as $item) {
             $p = Product::lockForUpdate()->find($item['product_id']);
             $quantity = (int)$item['quantity'];
@@ -360,12 +368,14 @@ public function store(Request $request)
             $stockRow->save();
         }
 
-        // 3️⃣ Update account balance & create transaction
-        if ($amountPaid > 0 && $request->account_id) {
+        //  Update account balance with GRAND TOTAL only (not amount_paid)
+        if ($request->account_id) {
             $account = Account::lockForUpdate()->find($request->account_id);
             if ($account) {
                 $balanceBefore = $account->current_balance;
-                $account->current_balance += $amountPaid;
+                
+                // Only add Grand Total to account, NOT the amount customer paid
+                $account->current_balance += $grandTotal;
                 $account->save();
 
                 \App\Models\AccountTransaction::create([
@@ -373,7 +383,7 @@ public function store(Request $request)
                     'reference_type'   => 'sale',
                     'reference_id'     => $sale->id,
                     'transaction_type' => 'credit',
-                    'amount'           => $amountPaid,
+                    'amount'           => $grandTotal, 
                     'balance_before'   => $balanceBefore,
                     'balance_after'    => $account->current_balance,
                     'description'      => "POS Sale - {$referenceNumber}",
@@ -385,7 +395,9 @@ public function store(Request $request)
                     'sale_id' => $sale->id,
                     'reference_number' => $referenceNumber,
                     'account_id' => $account->id,
-                    'amount' => $amountPaid,
+                    'grand_total' => $grandTotal,
+                    'amount_paid' => $amountPaid,
+                    'change_returned' => max(0, $amountPaid - $grandTotal),
                 ]);
             }
         }

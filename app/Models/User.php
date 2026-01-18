@@ -5,15 +5,15 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Spatie\Permission\Traits\HasRoles; // ✅ ADD THIS
+use Spatie\Permission\Traits\HasRoles;
 
-// ✅ Model imports
+// Model imports
 use App\Models\Purchase;
 use App\Models\Sale;
 
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable, HasRoles; // ✅ ADD HasRoles HERE
+    use HasFactory, Notifiable, HasRoles;
 
     /**
      * Mass assignable attributes
@@ -26,6 +26,8 @@ class User extends Authenticatable
         'company_name',
         'phone',
         'address',
+        'status',           // ✅ Added
+        'avatar',           // ✅ Added - এটা ছিল না বলে save হচ্ছিল না
         'email_verified_at',
     ];
 

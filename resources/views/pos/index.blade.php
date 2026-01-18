@@ -123,7 +123,7 @@ body { font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:#
         @endforeach
     </select>
 
-    <!-- 🔥 Warehouse Select -->
+    <!--  Warehouse Select -->
     <label class="fw-bold mb-2 mt-2">Warehouse</label>
     <select id="warehouseSelect" class="form-select">
         @foreach($warehouses as $warehouse)
@@ -182,14 +182,25 @@ body { font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:#
                         </div>
                         @endif
 
-                        <h6 class="mb-3 fw-bold">Payment Method</h6>
+                        
+                        <h6 class="mb-3 fw-bold">Select Payment Method</h6>
                         
                         <div class="payment-method active" onclick="selectPayment('cash')">
                             <div class="d-flex align-items-center">
                                 <input type="radio" name="payment_method" value="cash" id="pay_cash" checked>
-                                <label for="pay_cash" class="ms-3 mb-0 flex-grow-1">
+                                <label for="pay_cash" class="ms-3 mb-0 flex-grow-1" style="cursor:pointer;">
                                     <i class="bi bi-cash-stack payment-icon text-success"></i>
                                     <strong>Cash</strong>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="payment-method" onclick="selectPayment('cheque')">
+                            <div class="d-flex align-items-center">
+                                <input type="radio" name="payment_method" value="cheque" id="pay_cheque">
+                                <label for="pay_cheque" class="ms-3 mb-0 flex-grow-1" style="cursor:pointer;">
+                                    <i class="bi bi-file-text payment-icon text-info"></i>
+                                    <strong>Cheque</strong>
                                 </label>
                             </div>
                         </div>
@@ -197,9 +208,19 @@ body { font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:#
                         <div class="payment-method" onclick="selectPayment('card')">
                             <div class="d-flex align-items-center">
                                 <input type="radio" name="payment_method" value="card" id="pay_card">
-                                <label for="pay_card" class="ms-3 mb-0 flex-grow-1">
+                                <label for="pay_card" class="ms-3 mb-0 flex-grow-1" style="cursor:pointer;">
                                     <i class="bi bi-credit-card payment-icon text-primary"></i>
                                     <strong>Card</strong>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="payment-method" onclick="selectPayment('bank_transfer')">
+                            <div class="d-flex align-items-center">
+                                <input type="radio" name="payment_method" value="bank_transfer" id="pay_bank">
+                                <label for="pay_bank" class="ms-3 mb-0 flex-grow-1" style="cursor:pointer;">
+                                    <i class="bi bi-bank payment-icon text-secondary"></i>
+                                    <strong>Bank Transfer</strong>
                                 </label>
                             </div>
                         </div>
@@ -207,7 +228,7 @@ body { font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:#
                         <div class="payment-method" onclick="selectPayment('bkash')">
                             <div class="d-flex align-items-center">
                                 <input type="radio" name="payment_method" value="bkash" id="pay_bkash">
-                                <label for="pay_bkash" class="ms-3 mb-0 flex-grow-1">
+                                <label for="pay_bkash" class="ms-3 mb-0 flex-grow-1" style="cursor:pointer;">
                                     <i class="bi bi-phone payment-icon text-danger"></i>
                                     <strong>bKash</strong>
                                 </label>
@@ -217,9 +238,19 @@ body { font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:#
                         <div class="payment-method" onclick="selectPayment('nagad')">
                             <div class="d-flex align-items-center">
                                 <input type="radio" name="payment_method" value="nagad" id="pay_nagad">
-                                <label for="pay_nagad" class="ms-3 mb-0 flex-grow-1">
+                                <label for="pay_nagad" class="ms-3 mb-0 flex-grow-1" style="cursor:pointer;">
                                     <i class="bi bi-phone payment-icon text-warning"></i>
                                     <strong>Nagad</strong>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="payment-method" onclick="selectPayment('rocket')">
+                            <div class="d-flex align-items-center">
+                                <input type="radio" name="payment_method" value="rocket" id="pay_rocket">
+                                <label for="pay_rocket" class="ms-3 mb-0 flex-grow-1" style="cursor:pointer;">
+                                    <i class="bi bi-phone payment-icon" style="color:#8b4789;"></i>
+                                    <strong>Rocket</strong>
                                 </label>
                             </div>
                         </div>
@@ -261,7 +292,7 @@ let cart = [];
 let warehouseId = {{ $mainWarehouse ? $mainWarehouse->id : 'null' }};
 
 /**
- * 🔥 MISSING FUNCTION: Render cart items and totals
+ *  Render cart items and totals
  */
 function renderCart() {
     const cartItemsDiv = document.getElementById('cartItems');

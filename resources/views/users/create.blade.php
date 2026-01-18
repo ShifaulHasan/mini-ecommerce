@@ -41,6 +41,26 @@
             border-radius: 8px;
             border: none;
         }
+        .avatar-preview {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid #667eea;
+            display: none;
+        }
+        .avatar-placeholder {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 48px;
+            font-weight: bold;
+        }
     </style>
 
     @if ($errors->any())
@@ -54,10 +74,27 @@
     @endif
 
     <div class="user-card">
-        <form action="{{ route('users.store') }}" method="POST">
+        <form action="{{ route('users.store') }}" method="POST" enctype="multipart/form-data">
             @csrf
 
             <div class="row g-4">
+                {{-- Avatar Upload --}}
+                <div class="col-12 text-center mb-3">
+                    <div class="avatar-placeholder" id="avatarPlaceholder">
+                        <i class="bi bi-person"></i>
+                    </div>
+                    <img id="avatarPreview" class="avatar-preview" alt="Avatar Preview">
+                    <div class="mt-3">
+                        <label for="avatarInput" class="btn btn-outline-primary">
+                            <i class="bi bi-camera"></i> Choose Avatar
+                        </label>
+                        <input type="file" name="avatar" id="avatarInput" class="d-none" accept="image/*">
+                        <button type="button" class="btn btn-outline-danger ms-2" id="removeAvatar" style="display: none;">
+                            <i class="bi bi-trash"></i> Remove
+                        </button>
+                    </div>
+                </div>
+
                 {{-- Basic Info --}}
                 <div class="col-md-6">
                     <label class="form-label">Full Name *</label>
@@ -105,7 +142,7 @@
                     </select>
                 </div>
 
-                {{-- Phone (ALWAYS VISIBLE ✅) --}}
+                {{-- Phone --}}
                 <div class="col-md-6">
                     <label class="form-label">Phone Number</label>
                     <input type="text" name="phone" class="form-control"
@@ -149,7 +186,12 @@
         document.addEventListener('DOMContentLoaded', function () {
             const roleSelect = document.getElementById('roleSelect');
             const additionalFields = document.getElementById('additionalFields');
+            const avatarInput = document.getElementById('avatarInput');
+            const avatarPreview = document.getElementById('avatarPreview');
+            const avatarPlaceholder = document.getElementById('avatarPlaceholder');
+            const removeAvatar = document.getElementById('removeAvatar');
 
+            // Role toggle
             function toggleFields() {
                 if (roleSelect.value === 'Supplier' || roleSelect.value === 'Customer') {
                     additionalFields.style.display = 'block';
@@ -160,10 +202,31 @@
 
             roleSelect.addEventListener('change', toggleFields);
             toggleFields();
+
+            // Avatar preview
+            avatarInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        avatarPreview.src = e.target.result;
+                        avatarPreview.style.display = 'block';
+                        avatarPlaceholder.style.display = 'none';
+                        removeAvatar.style.display = 'inline-block';
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+
+            // Remove avatar
+            removeAvatar.addEventListener('click', function() {
+                avatarInput.value = '';
+                avatarPreview.style.display = 'none';
+                avatarPlaceholder.style.display = 'flex';
+                removeAvatar.style.display = 'none';
+            });
         });
     </script>
-
-        </div> 
 
     <!-- Footer Note -->
     <div class="row mt-4 mb-3">
@@ -174,5 +237,4 @@
         </div>
     </div>
 
-</div>
 </x-app-layout>
