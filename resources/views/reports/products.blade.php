@@ -78,7 +78,13 @@
                                     </tr>
                                 </thead>
                                 <tbody>
+                                    @php
+                                        $totalStock = 0;
+                                    @endphp
                                     @forelse($products as $index => $product)
+                                        @php
+                                            $totalStock += $product->current_stock;
+                                        @endphp
                                         <tr>
                                             <td>{{ $index + 1 }}</td>
                                             <td>{{ $product->product_code }}</td>
@@ -99,6 +105,15 @@
                                         </tr>
                                     @endforelse
                                 </tbody>
+                                @if(count($products) > 0)
+                                <tfoot class="table-secondary">
+                                    <tr>
+                                        <th colspan="7" class="text-end">Total Stock:</th>
+                                        <th>{{ number_format($totalStock) }}</th>
+                                        <th></th>
+                                    </tr>
+                                </tfoot>
+                                @endif
                             </table>
                         </div>
 
@@ -155,13 +170,34 @@
             $('#productsTable').DataTable({
                 dom: 'Bfrtip',
                 buttons: [
-                    { extend: 'copy', className: 'btn btn-secondary btn-sm' },
-                    { extend: 'csv', className: 'btn btn-info btn-sm' },
-                    { extend: 'excel', className: 'btn btn-success btn-sm' },
+                    { 
+                        extend: 'copy', 
+                        className: 'btn btn-secondary btn-sm',
+                        exportOptions: {
+                            footer: false
+                        }
+                    },
+                    { 
+                        extend: 'csv', 
+                        className: 'btn btn-info btn-sm',
+                        exportOptions: {
+                            footer: false
+                        }
+                    },
+                    { 
+                        extend: 'excel', 
+                        className: 'btn btn-success btn-sm',
+                        exportOptions: {
+                            footer: false
+                        }
+                    },
                     { 
                         extend: 'pdf', 
                         className: 'btn btn-danger btn-sm',
                         title: '',
+                        exportOptions: {
+                            footer: false
+                        },
                         customize: function(doc) {
                             // Add company header with logo
                             var headerContent = [];
@@ -187,7 +223,7 @@
                             });
                             
                             headerContent.push({
-                                text: 'Smart Billing System With E-Commerce',
+                                text: 'and Smart Billing System ',
                                 alignment: 'center',
                                 fontSize: 12,
                                 margin: [0, 0, 0, 8]
@@ -226,12 +262,30 @@
                                 }],
                                 margin: [0, 0, 0, 15]
                             });
+
+                            // Add total stock footer manually
+                            var totalStock = '{{ number_format($totalStock) }}';
+                            doc.content.push({
+                                table: {
+                                    widths: ['*', 'auto'],
+                                    body: [
+                                        [
+                                            {text: 'Total Stock:', alignment: 'right', bold: true, fillColor: '#e9ecef'},
+                                            {text: totalStock, bold: true, fillColor: '#e9ecef'}
+                                        ]
+                                    ]
+                                },
+                                margin: [0, 10, 0, 0]
+                            });
                         }
                     },
                     { 
                         extend: 'print', 
                         className: 'btn btn-primary btn-sm',
                         title: '',
+                        exportOptions: {
+                            footer: false
+                        },
                         customize: function(win) {
                             // Use base64 logo if available, otherwise use direct URL
                             var printLogo = logoBase64 || logoUrl;
@@ -242,7 +296,7 @@
                                     '<div style="text-align:center; margin-bottom:25px; padding:20px 0;">' +
                                     '<img src="' + printLogo + '" style="width:60px; height:60px; border-radius:50%; margin-bottom:10px; display:block; margin-left:auto; margin-right:auto;" />' +
                                     '<h2 style="margin:0 0 5px 0; font-size:18px; font-weight:bold; color:#333;">Inventory Management Software</h2>' +
-                                    '<p style="margin:0 0 8px 0; font-size:13px; color:#666;">Smart Billing System With E-Commerce</p>' +
+                                    '<p style="margin:0 0 8px 0; font-size:13px; color:#666;">and Smart Billing System </p>' +
                                     '<p style="margin:0 0 3px 0; font-size:11px; color:#888;">Location: Uttara, Dhaka</p>' +
                                     '<p style="margin:0 0 10px 0; font-size:11px; color:#888;">Email: inventory@test.com | Phone: 01710037283</p>' +
                                     '<hr style="border:none; border-top:1.5px solid #333; margin:10px 0 20px 0;">' +
@@ -253,6 +307,17 @@
                                 .addClass('display')
                                 .css('font-size', '11pt');
                             
+                            // Add total stock after table
+                            var totalStock = '{{ number_format($totalStock) }}';
+                            $(win.document.body).find('table').after(
+                                '<table style="width:100%; margin-top:15px; border-collapse:collapse;">' +
+                                '<tr style="background-color:#e9ecef; font-weight:bold;">' +
+                                '<td style="text-align:right; padding:8px; border:1px solid #ddd;">Total Stock:</td>' +
+                                '<td style="padding:8px; border:1px solid #ddd; width:100px;">' + totalStock + '</td>' +
+                                '</tr>' +
+                                '</table>'
+                            );
+                            
                             // Add print styles
                             $(win.document.head).append(
                                 '<style>' +
@@ -261,6 +326,7 @@
                                 '  table { width: 100%; border-collapse: collapse; }' +
                                 '  th, td { padding: 8px; border: 1px solid #ddd; }' +
                                 '  th { background-color: #f8f9fa !important; -webkit-print-color-adjust: exact; }' +
+                                '  tfoot tr { background-color: #e9ecef !important; -webkit-print-color-adjust: exact; }' +
                                 '  img { -webkit-print-color-adjust: exact; print-color-adjust: exact; }' +
                                 '}' +
                                 '</style>'
@@ -278,6 +344,12 @@
         @media print {
             .btn, form, .navbar, .sidebar { display: none !important; }
             .card { border: none !important; box-shadow: none !important; }
+        }
+        
+        tfoot tr {
+            background-color: #e9ecef !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
         }
     </style>
 

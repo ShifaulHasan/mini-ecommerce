@@ -57,35 +57,66 @@
                                 <th>Invoice</th>
                                 <th>Customer</th>
                                 <th>Warehouse</th>
-                                <th class="text-end">Subtotal</th>
-                                <th class="text-end">Tax</th>
-                                <th class="text-end">Discount</th>
-                                <th class="text-end">Net Total</th>
-                                <th class="text-end">Paid</th>
-                                <th class="text-end">Due</th>
+                                <th class="text-end">Subtotal (৳)</th>
+                                <th class="text-end">Tax (৳)</th>
+                                <th class="text-end">Discount (৳)</th>
+                                <th class="text-end">Net Total (৳)</th>
+                                <th class="text-end">Paid (৳)</th>
+                                <th class="text-end">Due (৳)</th>
                                 <th>Status</th>
                                 <th>Payment</th>
                             </tr>
                         </thead>
                         <tbody>
+                            @php
+                                $totalSubtotal = 0;
+                                $totalTax = 0;
+                                $totalDiscount = 0;
+                                $totalNet = 0;
+                                $totalPaid = 0;
+                                $totalDue = 0;
+                            @endphp
                             @foreach($sales as $index => $sale)
+                                @php
+                                    $netTotal = $sale->grand_total + $sale->tax_amount - $sale->discount_amount;
+                                    $totalSubtotal += $sale->grand_total;
+                                    $totalTax += $sale->tax_amount;
+                                    $totalDiscount += $sale->discount_amount;
+                                    $totalNet += $netTotal;
+                                    $totalPaid += $sale->paid_amount;
+                                    $totalDue += $sale->due_amount;
+                                @endphp
                                 <tr>
                                     <td>{{ $index+1 }}</td>
                                     <td>{{ date('d-m-Y', strtotime($sale->sale_date)) }}</td>
                                     <td>{{ $sale->reference_number }}</td>
                                     <td>{{ $sale->customer_name }}</td>
                                     <td>{{ $sale->warehouse_name ?? 'N/A' }}</td>
-                                    <td class="text-end">৳{{ number_format($sale->grand_total,2) }}</td>
-                                    <td class="text-end">৳{{ number_format($sale->tax_amount,2) }}</td>
-                                    <td class="text-end">৳{{ number_format($sale->discount_amount,2) }}</td>
-                                    <td class="text-end fw-bold">৳{{ number_format($sale->grand_total + $sale->tax_amount - $sale->discount_amount,2) }}</td>
-                                    <td class="text-end text-success">৳{{ number_format($sale->paid_amount,2) }}</td>
-                                    <td class="text-end text-danger">৳{{ number_format($sale->due_amount,2) }}</td>
+                                    <td class="text-end">{{ number_format($sale->grand_total,2) }}</td>
+                                    <td class="text-end">{{ number_format($sale->tax_amount,2) }}</td>
+                                    <td class="text-end">{{ number_format($sale->discount_amount,2) }}</td>
+                                    <td class="text-end fw-bold">{{ number_format($netTotal,2) }}</td>
+                                    <td class="text-end text-success">{{ number_format($sale->paid_amount,2) }}</td>
+                                    <td class="text-end text-danger">{{ number_format($sale->due_amount,2) }}</td>
                                     <td><span class="badge bg-{{ $sale->sale_status=='completed'?'success':'warning' }}">{{ ucfirst($sale->sale_status) }}</span></td>
                                     <td><span class="badge bg-{{ $sale->payment_status=='paid'?'success':($sale->payment_status=='partial'?'warning':'danger') }}">{{ ucfirst($sale->payment_status) }}</span></td>
                                 </tr>
                             @endforeach
                         </tbody>
+                        @if(count($sales) > 0)
+                        <tfoot class="table-secondary">
+                            <tr>
+                                <th colspan="5" class="text-end">Total:</th>
+                                <th class="text-end">{{ number_format($totalSubtotal, 2) }}</th>
+                                <th class="text-end">{{ number_format($totalTax, 2) }}</th>
+                                <th class="text-end">{{ number_format($totalDiscount, 2) }}</th>
+                                <th class="text-end">{{ number_format($totalNet, 2) }}</th>
+                                <th class="text-end text-success">{{ number_format($totalPaid, 2) }}</th>
+                                <th class="text-end text-danger">{{ number_format($totalDue, 2) }}</th>
+                                <th colspan="2"></th>
+                            </tr>
+                        </tfoot>
+                        @endif
                     </table>
                 </div>
 
@@ -143,13 +174,34 @@
                 pageLength: 25,
                 dom: 'Bfrtip',
                 buttons: [
-                    { extend: 'copy', className: 'btn btn-secondary btn-sm' },
-                    { extend: 'excel', className: 'btn btn-success btn-sm' },
-                    { extend: 'csv', className: 'btn btn-info btn-sm' },
+                    { 
+                        extend: 'copy', 
+                        className: 'btn btn-secondary btn-sm',
+                        exportOptions: {
+                            footer: false
+                        }
+                    },
+                    { 
+                        extend: 'excel', 
+                        className: 'btn btn-success btn-sm',
+                        exportOptions: {
+                            footer: false
+                        }
+                    },
+                    { 
+                        extend: 'csv', 
+                        className: 'btn btn-info btn-sm',
+                        exportOptions: {
+                            footer: false
+                        }
+                    },
                     { 
                         extend: 'pdf', 
                         className: 'btn btn-danger btn-sm',
                         title: '',
+                        exportOptions: {
+                            footer: false
+                        },
                         customize: function(doc) {
                             // Add company header with logo
                             var headerContent = [];
@@ -175,7 +227,7 @@
                             });
                             
                             headerContent.push({
-                                text: 'Smart Billing System With E-Commerce',
+                                text: 'and Smart Billing System',
                                 alignment: 'center',
                                 fontSize: 12,
                                 margin: [0, 0, 0, 8]
@@ -214,12 +266,54 @@
                                 }],
                                 margin: [0, 0, 0, 15]
                             });
+
+                            // Add total summary manually
+                            var totalSubtotal = '{{ number_format($totalSubtotal, 2) }}';
+                            var totalTax = '{{ number_format($totalTax, 2) }}';
+                            var totalDiscount = '{{ number_format($totalDiscount, 2) }}';
+                            var totalNet = '{{ number_format($totalNet, 2) }}';
+                            var totalPaid = '{{ number_format($totalPaid, 2) }}';
+                            var totalDue = '{{ number_format($totalDue, 2) }}';
+                            
+                            doc.content.push({
+                                table: {
+                                    widths: ['*', 'auto', 'auto', 'auto', 'auto', 'auto', 'auto'],
+                                    body: [
+                                        [
+                                            {text: 'Total:', alignment: 'right', bold: true, fillColor: '#e9ecef', colSpan: 2},
+                                            {},
+                                            {text: totalSubtotal, alignment: 'right', bold: true, fillColor: '#e9ecef'},
+                                            {text: totalTax, alignment: 'right', bold: true, fillColor: '#e9ecef'},
+                                            {text: totalDiscount, alignment: 'right', bold: true, fillColor: '#e9ecef'},
+                                            {text: totalNet, alignment: 'right', bold: true, fillColor: '#e9ecef'},
+                                            {text: totalPaid, alignment: 'right', bold: true, fillColor: '#e9ecef', color: '#198754'}
+                                        ]
+                                    ]
+                                },
+                                margin: [0, 10, 0, 0]
+                            });
+                            
+                            doc.content.push({
+                                table: {
+                                    widths: ['*', 'auto'],
+                                    body: [
+                                        [
+                                            {text: 'Total Due:', alignment: 'right', bold: true, fillColor: '#e9ecef'},
+                                            {text: totalDue, alignment: 'right', bold: true, fillColor: '#e9ecef', color: '#dc3545'}
+                                        ]
+                                    ]
+                                },
+                                margin: [0, 5, 0, 0]
+                            });
                         }
                     },
                     { 
                         extend: 'print', 
                         className: 'btn btn-primary btn-sm',
                         title: '',
+                        exportOptions: {
+                            footer: false
+                        },
                         customize: function(win) {
                             // Use base64 logo if available, otherwise use direct URL
                             var printLogo = logoBase64 || logoUrl;
@@ -230,7 +324,7 @@
                                     '<div style="text-align:center; margin-bottom:25px; padding:20px 0;">' +
                                     '<img src="' + printLogo + '" style="width:60px; height:60px; border-radius:50%; margin-bottom:10px; display:block; margin-left:auto; margin-right:auto;" />' +
                                     '<h2 style="margin:0 0 5px 0; font-size:18px; font-weight:bold; color:#333;">Inventory Management Software</h2>' +
-                                    '<p style="margin:0 0 8px 0; font-size:13px; color:#666;">Smart Billing System With E-Commerce</p>' +
+                                    '<p style="margin:0 0 8px 0; font-size:13px; color:#666;">and Smart Billing System </p>' +
                                     '<p style="margin:0 0 3px 0; font-size:11px; color:#888;">Location: Uttara, Dhaka</p>' +
                                     '<p style="margin:0 0 10px 0; font-size:11px; color:#888;">Email: inventory@test.com | Phone: 01710037283</p>' +
                                     '<hr style="border:none; border-top:1.5px solid #333; margin:10px 0 20px 0;">' +
@@ -240,6 +334,37 @@
                             $(win.document.body).find('table')
                                 .addClass('display')
                                 .css('font-size', '11pt');
+                            
+                            // Add total summary after table
+                            var totalSubtotal = '{{ number_format($totalSubtotal, 2) }}';
+                            var totalTax = '{{ number_format($totalTax, 2) }}';
+                            var totalDiscount = '{{ number_format($totalDiscount, 2) }}';
+                            var totalNet = '{{ number_format($totalNet, 2) }}';
+                            var totalPaid = '{{ number_format($totalPaid, 2) }}';
+                            var totalDue = '{{ number_format($totalDue, 2) }}';
+                            
+                            $(win.document.body).find('table').after(
+                                '<table style="width:100%; margin-top:15px; border-collapse:collapse;">' +
+                                '<tr style="background-color:#e9ecef; font-weight:bold;">' +
+                                '<td style="text-align:right; padding:8px; border:1px solid #ddd;">Total:</td>' +
+                                '<td style="text-align:right; padding:8px; border:1px solid #ddd; width:100px;">Subtotal: ' + totalSubtotal + '</td>' +
+                                '<td style="text-align:right; padding:8px; border:1px solid #ddd; width:100px;">Tax: ' + totalTax + '</td>' +
+                                '<td style="text-align:right; padding:8px; border:1px solid #ddd; width:100px;">Discount: ' + totalDiscount + '</td>' +
+                                '</tr>' +
+                                '<tr style="background-color:#e9ecef; font-weight:bold;">' +
+                                '<td style="text-align:right; padding:8px; border:1px solid #ddd;">Net Total:</td>' +
+                                '<td style="text-align:right; padding:8px; border:1px solid #ddd;" colspan="3">' + totalNet + '</td>' +
+                                '</tr>' +
+                                '<tr style="background-color:#e9ecef; font-weight:bold;">' +
+                                '<td style="text-align:right; padding:8px; border:1px solid #ddd;">Total Paid:</td>' +
+                                '<td style="text-align:right; padding:8px; border:1px solid #ddd; color:#198754;" colspan="3">' + totalPaid + '</td>' +
+                                '</tr>' +
+                                '<tr style="background-color:#e9ecef; font-weight:bold;">' +
+                                '<td style="text-align:right; padding:8px; border:1px solid #ddd;">Total Due:</td>' +
+                                '<td style="text-align:right; padding:8px; border:1px solid #ddd; color:#dc3545;" colspan="3">' + totalDue + '</td>' +
+                                '</tr>' +
+                                '</table>'
+                            );
                             
                             // Add print styles
                             $(win.document.head).append(
@@ -265,6 +390,12 @@
         @media print {
             .btn, form, .navbar, .sidebar { display: none !important; }
             .card { border: none !important; box-shadow: none !important; }
+        }
+        
+        tfoot tr {
+            background-color: #e9ecef !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
         }
     </style>
 
