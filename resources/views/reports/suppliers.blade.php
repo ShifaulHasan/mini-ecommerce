@@ -75,9 +75,9 @@
                                         <th>Phone</th>
                                         <th>City</th>
                                         <th class="text-center">Total Orders</th>
-                                        <th class="text-end">Total Purchases</th>
-                                        <th class="text-end">Total Paid</th>
-                                        <th class="text-end">Total Due</th>
+                                        <th class="text-end">Total Purchases (৳)</th>
+                                        <th class="text-end">Total Paid (৳)</th>
+                                        <th class="text-end">Total Due (৳)</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -92,9 +92,9 @@
                                         <td class="text-center">
                                             <span class="badge bg-info">{{ $supplier->total_orders }}</span>
                                         </td>
-                                        <td class="text-end">৳{{ number_format($supplier->total_purchases, 2) }}</td>
-                                        <td class="text-end text-success fw-bold">৳{{ number_format($supplier->total_paid, 2) }}</td>
-                                        <td class="text-end text-danger fw-bold">৳{{ number_format($supplier->total_due, 2) }}</td>
+                                        <td class="text-end">{{ number_format($supplier->total_purchases, 2) }}</td>
+                                        <td class="text-end text-success fw-bold">{{ number_format($supplier->total_paid, 2) }}</td>
+                                        <td class="text-end text-danger fw-bold">{{ number_format($supplier->total_due, 2) }}</td>
                                     </tr>
                                     @endforeach
                                 </tbody>
@@ -102,9 +102,9 @@
                                 <tfoot class="table-secondary">
                                     <tr class="fw-bold">
                                         <td colspan="7" class="text-end">Grand Total:</td>
-                                        <td class="text-end">৳{{ number_format($totals['total_purchases'], 2) }}</td>
-                                        <td class="text-end text-success">৳{{ number_format($totals['total_paid'], 2) }}</td>
-                                        <td class="text-end text-danger">৳{{ number_format($totals['total_due'], 2) }}</td>
+                                        <td class="text-end">{{ number_format($totals['total_purchases'], 2) }}</td>
+                                        <td class="text-end text-success">{{ number_format($totals['total_paid'], 2) }}</td>
+                                        <td class="text-end text-danger">{{ number_format($totals['total_due'], 2) }}</td>
                                     </tr>
                                 </tfoot>
                                 @endif
@@ -164,13 +164,34 @@
             $('#supplierTable').DataTable({
                 dom: 'Bfrtip',
                 buttons: [
-                    { extend: 'copy', className: 'btn btn-secondary btn-sm' },
-                    { extend: 'csv', className: 'btn btn-info btn-sm' },
-                    { extend: 'excel', className: 'btn btn-success btn-sm' },
+                    { 
+                        extend: 'copy', 
+                        className: 'btn btn-secondary btn-sm',
+                        exportOptions: {
+                            footer: false
+                        }
+                    },
+                    { 
+                        extend: 'csv', 
+                        className: 'btn btn-info btn-sm',
+                        exportOptions: {
+                            footer: false
+                        }
+                    },
+                    { 
+                        extend: 'excel', 
+                        className: 'btn btn-success btn-sm',
+                        exportOptions: {
+                            footer: false
+                        }
+                    },
                     { 
                         extend: 'pdf', 
                         className: 'btn btn-danger btn-sm',
                         title: '',
+                        exportOptions: {
+                            footer: false
+                        },
                         customize: function(doc) {
                             // Add company header with logo
                             var headerContent = [];
@@ -187,7 +208,7 @@
                             
                             // Add company info
                             headerContent.push({
-                                text: 'Inventory Management Software And',
+                                text: 'Inventory Management Software',
                                 style: 'header',
                                 alignment: 'center',
                                 fontSize: 16,
@@ -196,7 +217,7 @@
                             });
                             
                             headerContent.push({
-                                text: 'Smart Billing System With E-Commerce',
+                                text: 'and Smart Billing System',
                                 alignment: 'center',
                                 fontSize: 12,
                                 margin: [0, 0, 0, 8]
@@ -235,12 +256,35 @@
                                 }],
                                 margin: [0, 0, 0, 15]
                             });
+
+                            // Add total summary manually
+                            var totalPurchases = '{{ number_format($totals["total_purchases"], 2) }}';
+                            var totalPaid = '{{ number_format($totals["total_paid"], 2) }}';
+                            var totalDue = '{{ number_format($totals["total_due"], 2) }}';
+                            
+                            doc.content.push({
+                                table: {
+                                    widths: ['*', 'auto', 'auto', 'auto'],
+                                    body: [
+                                        [
+                                            {text: 'Grand Total:', alignment: 'right', bold: true, fillColor: '#e9ecef'},
+                                            {text: totalPurchases, alignment: 'right', bold: true, fillColor: '#e9ecef'},
+                                            {text: totalPaid, alignment: 'right', bold: true, fillColor: '#e9ecef', color: '#198754'},
+                                            {text: totalDue, alignment: 'right', bold: true, fillColor: '#e9ecef', color: '#dc3545'}
+                                        ]
+                                    ]
+                                },
+                                margin: [0, 10, 0, 0]
+                            });
                         }
                     },
                     { 
                         extend: 'print', 
                         className: 'btn btn-primary btn-sm',
                         title: '',
+                        exportOptions: {
+                            footer: false
+                        },
                         customize: function(win) {
                             // Use base64 logo if available, otherwise use direct URL
                             var printLogo = logoBase64 || logoUrl;
@@ -251,7 +295,7 @@
                                     '<div style="text-align:center; margin-bottom:25px; padding:20px 0;">' +
                                     '<img src="' + printLogo + '" style="width:60px; height:60px; border-radius:50%; margin-bottom:10px; display:block; margin-left:auto; margin-right:auto;" />' +
                                     '<h2 style="margin:0 0 5px 0; font-size:18px; font-weight:bold; color:#333;">Inventory Management Software</h2>' +
-                                    '<p style="margin:0 0 8px 0; font-size:13px; color:#666;">Smart Billing System With E-Commerce</p>' +
+                                    '<p style="margin:0 0 8px 0; font-size:13px; color:#666;">and Smart Billing System </p>' +
                                     '<p style="margin:0 0 3px 0; font-size:11px; color:#888;">Location: Uttara, Dhaka</p>' +
                                     '<p style="margin:0 0 10px 0; font-size:11px; color:#888;">Email: inventory@test.com | Phone: 01710037283</p>' +
                                     '<hr style="border:none; border-top:1.5px solid #333; margin:10px 0 20px 0;">' +
@@ -261,6 +305,22 @@
                             $(win.document.body).find('table')
                                 .addClass('display')
                                 .css('font-size', '11pt');
+                            
+                            // Add total summary after table
+                            var totalPurchases = '{{ number_format($totals["total_purchases"], 2) }}';
+                            var totalPaid = '{{ number_format($totals["total_paid"], 2) }}';
+                            var totalDue = '{{ number_format($totals["total_due"], 2) }}';
+                            
+                            $(win.document.body).find('table').after(
+                                '<table style="width:100%; margin-top:15px; border-collapse:collapse;">' +
+                                '<tr style="background-color:#e9ecef; font-weight:bold;">' +
+                                '<td style="text-align:right; padding:8px; border:1px solid #ddd;">Grand Total:</td>' +
+                                '<td style="text-align:right; padding:8px; border:1px solid #ddd; width:120px;">Purchases: ' + totalPurchases + '</td>' +
+                                '<td style="text-align:right; padding:8px; border:1px solid #ddd; width:120px; color:#198754;">Paid: ' + totalPaid + '</td>' +
+                                '<td style="text-align:right; padding:8px; border:1px solid #ddd; width:120px; color:#dc3545;">Due: ' + totalDue + '</td>' +
+                                '</tr>' +
+                                '</table>'
+                            );
                             
                             // Add print styles
                             $(win.document.head).append(
@@ -287,6 +347,12 @@
         @media print {
             .btn, form, .navbar, .sidebar { display: none !important; }
             .card { border: none !important; box-shadow: none !important; }
+        }
+        
+        tfoot tr {
+            background-color: #e9ecef !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
         }
     </style>
 
